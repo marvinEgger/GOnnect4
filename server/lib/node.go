@@ -8,15 +8,6 @@ type Node struct {
 	Neighbors [dirCount]*Node
 }
 
-// NewNode creates a new empty node at given position
-func NewNode(row, col int) *Node {
-	return &Node{
-		Row:   row,
-		Col:   col,
-		Owner: CellEmpty,
-	}
-}
-
 // GetNeighbor returns the neighbor in the given direction, or nil if none
 func (n *Node) GetNeighbor(dir Direction) *Node {
 	return n.Neighbors[dir]

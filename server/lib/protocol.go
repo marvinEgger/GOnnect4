@@ -5,14 +5,14 @@ type MessageType string
 
 const (
 	// Client to Server
-	MsgLogin       MessageType = "login"
-	MsgCreateGame  MessageType = "create_game"
-	MsgJoinGame    MessageType = "join_game"
-	MsgPlay        MessageType = "play"
-	MsgReplay      MessageType = "replay"
-	MsgForfeit     MessageType = "forfeit"
-	MsgLeaveLobby  MessageType = "leave_lobby"
-	MsgDisconnect  MessageType = "disconnect"
+	MsgLogin      MessageType = "login"
+	MsgCreateGame MessageType = "create_game"
+	MsgJoinGame   MessageType = "join_game"
+	MsgPlay       MessageType = "play"
+	MsgReplay     MessageType = "replay"
+	MsgForfeit    MessageType = "forfeit"
+	MsgLeaveLobby MessageType = "leave_lobby"
+	MsgDisconnect MessageType = "disconnect"
 
 	// Server to Client
 	MsgWelcome     MessageType = "welcome"
@@ -44,11 +44,6 @@ type WelcomeData struct {
 	Username string   `json:"username"`
 }
 
-// CreateGameData contains game creation parameters
-type CreateGameData struct {
-	// Could add options like timer settings, board size, etc.
-}
-
 // GameCreatedData sent when game is created
 type GameCreatedData struct {
 	Code string `json:"code"`
@@ -61,9 +56,9 @@ type JoinGameData struct {
 
 // GameJoinedData sent when successfully joined a game
 type GameJoinedData struct {
-	Code      string      `json:"code"`
-	PlayerIdx int         `json:"player_idx"`
-	Status    GameStatus  `json:"status"`
+	Code      string        `json:"code"`
+	PlayerIdx int           `json:"player_idx"`
+	Status    GameStatus    `json:"status"`
 	Players   [2]PlayerInfo `json:"players"`
 }
 
@@ -76,10 +71,10 @@ type PlayerInfo struct {
 
 // GameStartData sent when game starts
 type GameStartData struct {
-	Code          string       `json:"code"`
-	CurrentTurn   int          `json:"current_turn"`
+	Code          string        `json:"code"`
+	CurrentTurn   int           `json:"current_turn"`
 	Players       [2]PlayerInfo `json:"players"`
-	TimeRemaining [2]int64     `json:"time_remaining"` // milliseconds
+	TimeRemaining [2]int64      `json:"time_remaining"` // milliseconds
 }
 
 // PlayData contains a move request
@@ -89,17 +84,17 @@ type PlayData struct {
 
 // MoveData broadcasts a move to both players
 type MoveData struct {
-	PlayerIdx     int             `json:"player_idx"`
-	Column        int             `json:"column"`
-	Row           int             `json:"row"`
+	PlayerIdx     int              `json:"player_idx"`
+	Column        int              `json:"column"`
+	Row           int              `json:"row"`
 	Board         [Rows][Cols]Cell `json:"board"`
-	NextTurn      int             `json:"next_turn"`
-	TimeRemaining [2]int64        `json:"time_remaining"` // milliseconds
+	NextTurn      int              `json:"next_turn"`
+	TimeRemaining [2]int64         `json:"time_remaining"` // milliseconds
 }
 
 // GameOverData sent when game ends
 type GameOverData struct {
-	Result GameResult      `json:"result"`
+	Result GameResult       `json:"result"`
 	Board  [Rows][Cols]Cell `json:"board"`
 }
 
@@ -116,13 +111,13 @@ type ErrorData struct {
 
 // GameStateData contains full game state for reconnection
 type GameStateData struct {
-	Code          string          `json:"code"`
-	Status        GameStatus      `json:"status"`
-	Result        GameResult      `json:"result"`
+	Code          string           `json:"code"`
+	Status        GameStatus       `json:"status"`
+	Result        GameResult       `json:"result"`
 	Board         [Rows][Cols]Cell `json:"board"`
 	Players       [2]PlayerInfo    `json:"players"`
-	PlayerIdx     int             `json:"player_idx"`
-	CurrentTurn   int             `json:"current_turn"`
-	MoveCount     int             `json:"move_count"`
-	TimeRemaining [2]int64        `json:"time_remaining"` // milliseconds
+	PlayerIdx     int              `json:"player_idx"`
+	CurrentTurn   int              `json:"current_turn"`
+	MoveCount     int              `json:"move_count"`
+	TimeRemaining [2]int64         `json:"time_remaining"` // milliseconds
 }
