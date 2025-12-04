@@ -11,6 +11,8 @@ import (
 	"github.com/marvinEgger/GOnnect4/server/lib"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
+
+	"time"
 )
 
 const (
@@ -32,9 +34,13 @@ type Binding struct {
 	PlayerID lib.PlayerID
 }
 
-// TODO: NewServer creates a new game server
+// NewServer  creates a new game server
 func NewServer() *Server {
-	return nil
+	return &Server{
+		gamesByCode:     make(map[string]*lib.Game),
+		lobby:           make(map[lib.PlayerID]*lib.Player),
+		bindingBySocket: make(map[*websocket.Conn]*Binding),
+	}
 }
 
 // writeJSON sends a JSON message to a websocket
@@ -122,6 +128,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 }
 
+
 // TODO: handleMessage routes messages to appropriate handlers
 func (s *Server) handleMessage(ctx context.Context, conn *websocket.Conn, binding *Binding, msg lib.Message) {
 
@@ -139,10 +146,31 @@ func mapToStruct(in interface{}, out interface{}) error {
 func main() {
 	server := NewServer()
 
+	// temp tests 
+	gameClock := 5 * time.Minute
+	game := lib.NewGame(gameClock)
+	fmt.Printf("Game Code: %s\n", game.Code)
+	fmt.Printf("Status: %v\n", game.Status)
+	fmt.Printf("Created At: %s\n", game.CreatedAt.Format(time.RFC3339))
+	fmt.Printf("Initial Clock: %v\n", game.InitialClock)
+
+	player := lib.NewPlayer("player", gameClock)
+	game.AddPlayer(player)
+	fmt.Printf("PlayerID: %s\n", player.ID)
+	fmt.Printf("Username: %s\n", player.Username)
+	fmt.Printf("Connected: %s\n", player.Connected)
+	fmt.Printf("Remaining: %s\n", player.Remaining)
+	fmt.Printf("is game full %s\n?", game.IsFull())
+	fmt.Printf("HasPlayer %s\n?", game.HasPlayer(player.ID))
+	fmt.Printf("GetPlayerIndex %s\n?", game.GetPlayerIndex(player.ID))
+
+
 	http.HandleFunc("/ws", server.handleWebSocket)
 	http.Handle("/", http.FileServer(http.Dir(webFolder)))
 
 	addr := defaultListenAddress
 	fmt.Printf("Server starting on %s\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
+
+
 }
