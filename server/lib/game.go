@@ -1,6 +1,9 @@
 package lib
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"strings"
 	"sync"
 	"time"
 )
@@ -59,14 +62,38 @@ type Game struct {
 	TimerCallback func(string, int) // Called when timer expires with (gameCode, loserIdx)
 }
 
-// TODO: NewGame creates a new game with a random code
+// NewGame creates a new game with a random code
 func NewGame(initialClock time.Duration) *Game {
-	return nil
-}
+	return &Game{
+		Code:          randomCode(codeLength),
+		Board:         NewBoard(),
+		Status:        StatusWaiting,
+		CreatedAt:     time.Now(),
+		InitialClock:  initialClock,
+		TimeRemaining: [2]time.Duration{initialClock, initialClock},
+	}}
 
-// TODO: AddPlayer adds a player to the game
-func (g *Game) AddPlayer(p *Player) bool {
+// AddPlayer adds a player to the game
+func (game *Game) AddPlayer(player *Player) bool {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+
+	if game.Status != StatusWaiting {
+		return false
+	}
+
+	for i := range game.Players {
+		if game.Players[i] == nil {
+			game.Players[i] = player
+			if i == 1 {
+				game.start()
+			}
+			return true
+		}
+	}
+
 	return false
+
 }
 
 // TODO: start begins the game when both players are ready
@@ -109,27 +136,51 @@ func (g *Game) GetTimeRemaining() [2]time.Duration {
 	return [2]time.Duration{}
 }
 
-// TODO: GetPlayerIndex returns the index of the given player
+// GetPlayerIndex returns the index of the given player
 func (g *Game) GetPlayerIndex(id PlayerID) int {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	for i, p := range g.Players {
+		if p != nil && p.ID == id {
+			return i
+		}
+	}
 	return -1
 }
 
-// TODO: HasPlayer checks if a player is in this game
+// HasPlayer checks if a player is in this game
 func (g *Game) HasPlayer(id PlayerID) bool {
-	return false
+	return g.GetPlayerIndex(id) >= 0
 }
 
-// TODO: IsFull checks if the game has 2 players
+// IsFull checks if the game has 2 players
 func (g *Game) IsFull() bool {
-	return false
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.Players[0] != nil && g.Players[1] != nil
 }
 
-// TODO: randomCode generates a random alphanumeric code
+// randomCode generates a random alphanumeric code
 func randomCode(length int) string {
-	return ""
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		panic("failed to generate random code: " + err.Error())
+	}
+
+	for i, b := range bytes {
+		bytes[i] = charset[b%byte(len(charset))]
+	}
+
+	return string(bytes)
 }
 
-// TODO: newToken generates a random hex token
+// newToken generates a random hex token
 func newToken(length int) string {
-	return ""
+	buffer := make([]byte, length)
+	if _, err := rand.Read(buffer); err != nil {
+		panic("failed to generate random token: " + err.Error())
+	}
+	return strings.ToUpper(hex.EncodeToString(buffer))
 }
