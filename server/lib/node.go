@@ -1,3 +1,8 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Marvin Egger marvin.egger@hotmail.ch
+// Created: 05.12.2025
+
 package lib
 
 // Node represents a cell in the board as a graph node
@@ -8,13 +13,26 @@ type Node struct {
 	Neighbors [dirCount]*Node
 }
 
+// NewNode creates a new empty node at given position
+func NewNode(row, col int) *Node {
+	return &Node{
+		Row:   row,
+		Col:   col,
+		Owner: CellEmpty,
+	}
+}
+
 // GetNeighbor returns the neighbor in the given direction, or nil if none
 func (n *Node) GetNeighbor(dir Direction) *Node {
 	return n.Neighbors[dir]
 }
 
-// TODO:  SetNeighbor sets the neighbor in the given direction
+// SetNeighbor sets the neighbor in the given direction
 func (n *Node) SetNeighbor(dir Direction, neighbor *Node) {
+	n.Neighbors[dir] = neighbor
+	if neighbor != nil {
+		neighbor.Neighbors[dir.Opposite()] = n
+	}
 }
 
 // IsEmpty checks if the node has no owner
@@ -29,10 +47,47 @@ func (n *Node) SetOwner(player Cell) {
 
 // TODO: CountSequence counts consecutive nodes with same owner in given direction
 func (n *Node) CountSequence(dir Direction) int {
-	return -1
+	if n.IsEmpty() {
+		return 0
+	}
+
+	count := 0
+	current := n.GetNeighbor(dir)
+
+	for current != nil && current.Owner == n.Owner {
+		count++
+		current = current.GetNeighbor(dir)
+	}
+
+	return count
 }
 
 // TODO: CheckWin checks if placing a token at this node creates a winning sequence
 func (n *Node) CheckWin(winLength int) bool {
+
+	if n.IsEmpty() {
+		return false
+	}
+
+	// Check horizontal (left + right)
+	if 1+n.CountSequence(DirLeft)+n.CountSequence(DirRight) >= winLength {
+		return true
+	}
+
+	// Check vertical (up + down)
+	if 1+n.CountSequence(DirUp)+n.CountSequence(DirDown) >= winLength {
+		return true
+	}
+
+	// Check diagonal down-left to up-right
+	if 1+n.CountSequence(DirUpRight)+n.CountSequence(DirDownLeft) >= winLength {
+		return true
+	}
+
+	// Check diagonal up-left to down-right
+	if 1+n.CountSequence(DirUpLeft)+n.CountSequence(DirDownRight) >= winLength {
+		return true
+	}
+
 	return false
 }
