@@ -1,7 +1,15 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Astrit Aslani astrit.aslani@gmail.com
+// Created: 08.12.2025
+//go:build js && wasm
+// +build js,wasm
+
 package lib
 
 import (
-	js "syscall/js"
+	"encoding/json"
+	"syscall/js"
 )
 
 // Message represents a WebSocket message
@@ -65,22 +73,108 @@ var (
 	messageHandler func(Message)
 )
 
-// TODO: Connect establishes WebSocket connection
+// Connect establishes WebSocket connection
 func Connect(username, playerID string, onMessage func(Message)) {
+	messageHandler = onMessage
 
+	protocol := "ws:"
+	if js.Global().Get("location").Get("protocol").String() == "https:" {
+		protocol = "wss:"
+	}
+
+	host := js.Global().Get("location").Get("host").String()
+	wsURL := protocol + "//" + host + "/ws"
+
+	Console("Connecting to " + wsURL)
+
+	ws = js.Global().Get("WebSocket").New(wsURL)
+
+	// OnOpen handler
+	ws.Call("addEventListener", "open", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		Console("Connected to server")
+
+		// Send login message
+		loginData := map[string]interface{}{
+			"username": username,
+		}
+		if playerID != "" {
+			loginData["player_id"] = playerID
+		}
+
+		SendMessage("login", loginData)
+		return nil
+	}))
+
+	// OnMessage handler
+	ws.Call("addEventListener", "message", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		event := args[0]
+		data := event.Get("data").String()
+
+		var msg Message
+		if err := json.Unmarshal([]byte(data), &msg); err != nil {
+			Console("Error parsing message: " + err.Error())
+			return nil
+		}
+
+		if messageHandler != nil {
+			messageHandler(msg)
+		}
+
+		return nil
+	}))
+
+	// OnError handler
+	ws.Call("addEventListener", "error", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		Console("WebSocket error")
+		ShowMessage("login-message", "Connection error", "error")
+		return nil
+	}))
+
+	// OnClose handler
+	ws.Call("addEventListener", "close", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		Console("Disconnected from server")
+		return nil
+	}))
 }
 
-// TODO: SendMessage sends a message to the server
+// SendMessage sends a message to the server
 func SendMessage(msgType string, data interface{}) {
+	if ws.IsNull() || ws.IsUndefined() {
+		Console("WebSocket not connected")
+		return
+	}
 
+	readyState := ws.Get("readyState").Int()
+	if readyState != 1 { // 1 = OPEN
+		Console("WebSocket not ready")
+		return
+	}
+
+	msg := Message{
+		Type: msgType,
+		Data: data,
+	}
+
+	bytes, err := json.Marshal(msg)
+	if err != nil {
+		Console("Error marshaling message: " + err.Error())
+		return
+	}
+
+	ws.Call("send", string(bytes))
 }
 
-// TODO: Close closes the WebSocket connection
+// Close closes the WebSocket connection
 func Close() {
-
+	if !ws.IsNull() && !ws.IsUndefined() {
+		ws.Call("close")
+	}
 }
 
-// TODO: IsConnected checks if WebSocket is connected
+// IsConnected checks if WebSocket is connected
 func IsConnected() bool {
-	return false
+	if ws.IsNull() || ws.IsUndefined() {
+		return false
+	}
+	return ws.Get("readyState").Int() == 1
 }
