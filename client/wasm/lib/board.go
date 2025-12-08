@@ -1,8 +1,13 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Astrit Aslani astrit.aslani@gmail.com
+// Created: 08.12.2025
+//go:build js && wasm
+// +build js,wasm
+
 package lib
 
-import (
-	js "syscall/js"
-)
+import "syscall/js"
 
 // Constants
 const (
@@ -30,14 +35,43 @@ var (
 	ctx    js.Value
 )
 
-// TODO: Initialize sets up the canvas
+// Initialize sets up the canvas
 func Initialize() {
-
+	canvas = js.Global().Get("document").Call("getElementById", "game-board")
+	if canvas.IsNull() {
+		return
+	}
+	ctx = canvas.Call("getContext", "2d")
 }
 
 // Draw renders the entire board
 func Draw() {
+	if ctx.IsNull() {
+		return
+	}
 
+	width := canvas.Get("width").Int()
+	height := canvas.Get("height").Int()
+
+	// Clear
+	ctx.Call("clearRect", 0, 0, width, height)
+
+	// Background
+	ctx.Set("fillStyle", ColorBoardBg)
+	ctx.Call("fillRect", 0, 0, width, height)
+
+	// Draw cells
+	for row := 0; row < Rows; row++ {
+		for col := 0; col < Cols; col++ {
+			x := col * CellSize
+			y := row * CellSize
+
+			// Cell border
+			ctx.Set("strokeStyle", ColorBoardBorder)
+			ctx.Set("lineWidth", 2)
+			ctx.Call("strokeRect", x, y, CellSize, CellSize)
+		}
+	}
 }
 
 // TODO: drawHoverPreview draws ghost token preview

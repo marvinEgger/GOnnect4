@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Script to run the server
+# If already running, kill with : lsof -ti:8080 | xargs kill -9 2>/dev/null; echo "Port 8080 freed"
 
 echo "Starting GOnnect4 server..."
 echo "Working directory: $(pwd)"
