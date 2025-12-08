@@ -1,7 +1,6 @@
 # Binaries and build artifacts
-server/server
-client/game.wasm
-client/wasm_exec.js
+server/dist/
+client/dist/
 .env
 
 # Test binary
