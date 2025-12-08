@@ -7,13 +7,134 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <h1>Welcome to GOnnect4!</h1>
-    
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <img src="assets/logo/GOnnect4.png" alt="GOnnect4" id="main-logo">
+                <h1>GOnnect4</h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="app">
+            <!-- Login Screen -->
+            <div id="login-screen" class="screen active">
+                <div class="card">
+                    <h1>Welcome to GOnnect4 !</h1>
+                    <p class="subtitle">The Connect 4 game built with Go</p>
+                    <input type="text" id="username-input" placeholder="Enter your username" maxlength="20">
+                    <button id="connect-btn" class="btn btn-success">Connect</button>
+                    <div id="login-message" class="message"></div>
+                </div>
+            </div>
+
+            <!-- Lobby Screen -->
+            <div id="lobby-screen" class="screen">
+                <div class="card">
+                    <div class="lobby-header">
+                        <h2 id="welcome-message">Welcome !</h2>
+                        <button id="logout-btn" class="btn btn-small" style="background: var(--danger); color: white;">Logout</button>
+                    </div>
+
+                    <!-- Create Game -->
+                    <div class="lobby-section">
+                        <button id="create-game-btn" class="btn btn-success btn-large">Create New Game</button>
+                    </div>
+
+                    <div class="separator">OR</div>
+
+                    <!-- Join Game -->
+                    <div class="lobby-section">
+                        <label>Join with code:</label>
+                        <div class="input-group">
+                            <input type="text" id="join-code-input" placeholder="XXXXX" maxlength="5" style="text-transform: uppercase">
+                            <button id="join-game-btn" class="btn btn-primary">Join</button>
+                        </div>
+                    </div>
+
+                    <!-- Waiting for opponent -->
+                    <div id="waiting-area" class="waiting-area" style="display: none;">
+                        <h3>Waiting for opponent...</h3>
+                        <div class="code-display">
+                            <label>Game Code:</label>
+                            <div class="code-value" id="game-code-display">-----</div>
+                        </div>
+                        <button id="copy-code-btn" class="btn btn-warning">Copy Code</button>
+                        <p class="share-text">Share this code with your friend</p>
+                        <div class="spinner"></div>
+                    </div>
+
+                    <div id="lobby-message" class="message"></div>
+                </div>
+            </div>
+
+            <!-- Game Screen -->
+            <div id="game-screen" class="screen">
+                <!-- Game Header with Players and Info -->
+                <div class="game-header">
+                    <div class="player-card player-0" id="player-0">
+                        <img src="assets/token/red.png" alt="Red" class="player-token">
+                        <div class="player-info">
+                            <div class="player-name">Player 1</div>
+                            <div class="player-badge">You</div>
+                            <div class="player-timer" id="timer-0">2:30</div>
+                        </div>
+                    </div>
+
+                    <div class="game-info-center">
+                        <div id="game-status" class="status-message">Waiting...</div>
+                        <div id="game-code-area" class="code-area">
+                            <span id="game-code-info">-----</span>
+                            <button id="copy-code-game-btn" class="btn btn-small btn-warning">Copy</button>
+                        </div>
+                        <div id="replay-area" class="replay-area" style="display: none;">
+                            <button id="replay-btn" class="btn btn-primary">Request Replay</button>
+                            <button id="back-to-lobby-btn" class="btn btn-primary">Back to Lobby</button>
+                        </div>
+                    </div>
+
+                    <div class="player-card player-1" id="player-1">
+                        <img src="assets/token/yellow.png" alt="Yellow" class="player-token">
+                        <div class="player-info">
+                            <div class="player-name">Player 2</div>
+                            <div class="player-badge">Opponent</div>
+                            <div class="player-timer" id="timer-1">2:30</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Board -->
+                <div class="board-container">
+                    <canvas id="game-board" width="560" height="480"></canvas>
+                </div>
+
+                <!-- Custom Game Actions -->
+                <div id="game-actions" class="game-actions">
+                    <button id="forfeit-btn" class="btn btn-small" style="background: var(--danger); color: white;">Forfeit</button>
+                </div>
+
+                <!-- Waiting Actions -->
+                <div id="waiting-actions" class="game-actions" style="display: none;">
+                    <button id="cancel-game-btn" class="btn btn-small btn-primary">Back to Lobby</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-left">
+                <img src="assets/logo/go.png" alt="Go" class="footer-logo">
+            </div>
+            <div class="footer-right">
+                Developed by Astrit&nbsp;Aslani &&nbsp;Marvin&nbsp;Egger
+            </div>
+        </footer>
+
         <!-- WebAssembly -->
-        <script src="wasm_exec.js"></script>
+        <script src="dist/wasm_exec.js"></script>
         <script>
             const go = new Go();
-            WebAssembly.instantiateStreaming(fetch("app.wasm"), go.importObject).then((result) => {
+            WebAssembly.instantiateStreaming(fetch("dist/game.wasm"), go.importObject).then((result) => {
                 go.run(result.instance);
             });
         </script>
