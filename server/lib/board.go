@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Marvin Egger marvin.egger@hotmail.ch
+// Created: 05.12.2025
 package lib
 
 const (
@@ -14,52 +18,143 @@ type Board struct {
 	cols       int
 }
 
-// TODO: NewBoard creates a new board and builds the node graph
+// NewBoard creates a new board and builds the node graph
 func NewBoard() *Board {
-	return &Board{}
+	b := &Board{
+		rows: Rows,
+		cols: Cols,
+	}
+	b.buildGraph()
+	return b
 }
 
-// TODO: buildGraph creates all nodes and establishes neighbor relationships
+// buildGraph creates all nodes and establishes neighbor relationships
 func (b *Board) buildGraph() {
+	// Create all nodes
+	b.nodes = make([][]*Node, b.rows)
+	for row := 0; row < b.rows; row++ {
+		b.nodes[row] = make([]*Node, b.cols)
+		for col := 0; col < b.cols; col++ {
+			b.nodes[row][col] = NewNode(row, col)
+		}
+	}
+
+	// Establish neighbor relationships
+	for row := 0; row < b.rows; row++ {
+		for col := 0; col < b.cols; col++ {
+			node := b.nodes[row][col]
+
+			// Up
+			if row > 0 {
+				node.SetNeighbor(DirUp, b.nodes[row-1][col])
+			}
+
+			// Down
+			if row < b.rows-1 {
+				node.SetNeighbor(DirDown, b.nodes[row+1][col])
+			}
+
+			// Left
+			if col > 0 {
+				node.SetNeighbor(DirLeft, b.nodes[row][col-1])
+			}
+
+			// Right
+			if col < b.cols-1 {
+				node.SetNeighbor(DirRight, b.nodes[row][col+1])
+			}
+
+			// Diagonals
+			if row > 0 && col > 0 {
+				node.SetNeighbor(DirUpLeft, b.nodes[row-1][col-1])
+			}
+
+			if row > 0 && col < b.cols-1 {
+				node.SetNeighbor(DirUpRight, b.nodes[row-1][col+1])
+			}
+
+			if row < b.rows-1 && col > 0 {
+				node.SetNeighbor(DirDownLeft, b.nodes[row+1][col-1])
+			}
+
+			if row < b.rows-1 && col < b.cols-1 {
+				node.SetNeighbor(DirDownRight, b.nodes[row+1][col+1])
+			}
+		}
+	}
 
 }
 
-// TODO: CanPlay checks if a column can accept a token
+// CanPlay checks if a column can accept a token
 func (b *Board) CanPlay(col int) bool {
-	return false
+	return col >= 0 && col < b.cols && b.colHeights[col] < b.rows
 }
 
-// TODO: Play drops a token in the given column for the given player
+// Play drops a token in the given column for the given player
 func (b *Board) Play(col int, player Cell) (*Node, bool) {
-	return nil, false
+	if !b.CanPlay(col) {
+		return nil, false
+	}
+
+	row := b.rows - 1 - b.colHeights[col]
+	node := b.nodes[row][col]
+	node.SetOwner(player)
+	b.colHeights[col]++
+
+	return node, true
 }
 
-// TODO: CheckWin checks if the last played node creates a winning condition
+// CheckWin checks if the last played node creates a winning condition
 func (b *Board) CheckWin(node *Node) bool {
-	return false
+	return node.CheckWin(WinLength)
 }
 
-// TODO: IsFull checks if the board is completely full
+// IsFull checks if the board is completely full
 func (b *Board) IsFull() bool {
-	return false
+	for col := 0; col < b.cols; col++ {
+		if b.colHeights[col] < b.rows {
+			return false
+		}
+	}
+	return true
 }
 
-// TODO: GetNode returns the node at given position
+// GetNode returns the node at given position
 func (b *Board) GetNode(row, col int) *Node {
-	return nil
+	if row < 0 || row >= b.rows || col < 0 || col >= b.cols {
+		return nil
+	}
+	return b.nodes[row][col]
 }
 
-// TODO: GetLastPlayedNode returns the node at the top of a column
+// GetLastPlayedNode returns the node at the top of a column
 func (b *Board) GetLastPlayedNode(col int) *Node {
-	return nil
+	if col < 0 || col >= b.cols || b.colHeights[col] == 0 {
+		return nil
+	}
+	row := b.rows - b.colHeights[col]
+	return b.nodes[row][col]
 }
 
-// TODO: Reset clears the board for a new game
+// Reset clears the board for a new game
 func (b *Board) Reset() {
-
+	for row := 0; row < b.rows; row++ {
+		for col := 0; col < b.cols; col++ {
+			b.nodes[row][col].SetOwner(CellEmpty)
+		}
+	}
+	for col := 0; col < b.cols; col++ {
+		b.colHeights[col] = 0
+	}
 }
 
-// TODO: ToArray exports the board state as a 2D array
+// ToArray exports the board state as a 2D array
 func (b *Board) ToArray() [Rows][Cols]Cell {
-	return [Rows][Cols]Cell{}
+	var arr [Rows][Cols]Cell
+	for row := 0; row < b.rows; row++ {
+		for col := 0; col < b.cols; col++ {
+			arr[row][col] = b.nodes[row][col].Owner
+		}
+	}
+	return arr
 }

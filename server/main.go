@@ -128,7 +128,6 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
 // TODO: handleMessage routes messages to appropriate handlers
 func (s *Server) handleMessage(ctx context.Context, conn *websocket.Conn, binding *Binding, msg lib.Message) {
 
@@ -146,7 +145,7 @@ func mapToStruct(in interface{}, out interface{}) error {
 func main() {
 	server := NewServer()
 
-	// temp tests 
+	// temp tests
 	gameClock := 5 * time.Minute
 	game := lib.NewGame(gameClock)
 	fmt.Printf("Game Code: %s\n", game.Code)
@@ -164,13 +163,11 @@ func main() {
 	fmt.Printf("HasPlayer %s\n?", game.HasPlayer(player.ID))
 	fmt.Printf("GetPlayerIndex %s\n?", game.GetPlayerIndex(player.ID))
 
-
 	http.HandleFunc("/ws", server.handleWebSocket)
 	http.Handle("/", http.FileServer(http.Dir(webFolder)))
 
 	addr := defaultListenAddress
 	fmt.Printf("Server starting on %s\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
-
 
 }
