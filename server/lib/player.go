@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Marvin Egger marvin.egger@hotmail.ch
+// Created: 05.12.2025
 package lib
 
 import (

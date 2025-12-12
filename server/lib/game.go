@@ -1,3 +1,8 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Marvin Egger marvin.egger@hotmail.ch
+// Created: 05.12.2025
+
 package lib
 
 import (
@@ -71,7 +76,8 @@ func NewGame(initialClock time.Duration) *Game {
 		CreatedAt:     time.Now(),
 		InitialClock:  initialClock,
 		TimeRemaining: [2]time.Duration{initialClock, initialClock},
-	}}
+	}
+}
 
 // AddPlayer adds a player to the game
 func (game *Game) AddPlayer(player *Player) bool {
@@ -96,23 +102,101 @@ func (game *Game) AddPlayer(player *Player) bool {
 
 }
 
-// TODO: start begins the game when both players are ready
+// start begins the game when both players are ready
 func (g *Game) start() {
-
+	g.Status = StatusPlaying
+	g.TurnStartedAt = time.Now()
+	g.LastPlayedAt = time.Now()
+	g.startTimer()
 }
 
-// TODO: startTimer starts the timer for the current player
+// startTimer starts the timer for the current player
 func (g *Game) startTimer() {
+	if g.Timer != nil {
+		g.Timer.Stop()
+	}
 
+	remaining := g.TimeRemaining[g.CurrentTurn]
+	if remaining <= 0 {
+		// Time already expired
+		if g.TimerCallback != nil {
+			g.TimerCallback(g.Code, g.CurrentTurn)
+		}
+		return
+	}
+
+	// Capture values to avoid race condition
+	code := g.Code
+	playerIndex := g.CurrentTurn
+	g.Timer = time.AfterFunc(remaining, func() {
+		if g.TimerCallback != nil {
+			g.TimerCallback(code, playerIndex)
+		}
+	})
 }
 
-// TODO: stopTimer stops the timer and updates remaining time
+// stopTimer stops the timer and updates remaining time
 func (g *Game) stopTimer() {
-
+	if g.Timer != nil {
+		g.Timer.Stop()
+		elapsed := time.Since(g.TurnStartedAt)
+		g.TimeRemaining[g.CurrentTurn] -= elapsed
+		if g.TimeRemaining[g.CurrentTurn] < 0 {
+			g.TimeRemaining[g.CurrentTurn] = 0
+		}
+	}
 }
 
-// TODO: Play attempts to play a move in the given column
+// Play attempts to play a move in the given column
 func (g *Game) Play(playerIdx, col int) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.Status != StatusPlaying {
+		return ErrGameNotPlaying
+	}
+
+	if playerIdx != g.CurrentTurn {
+		return ErrNotYourTurn
+	}
+
+	// Stop timer and update time
+	g.stopTimer()
+
+	player := Cell(int(CellPlayer0) + playerIdx)
+	node, ok := g.Board.Play(col, player)
+	if !ok {
+		return ErrInvalidMove
+	}
+
+	g.MoveCount++
+	g.LastPlayedAt = time.Now()
+
+	// Check for win
+	if g.Board.CheckWin(node) {
+		g.Status = StatusFinished
+		g.Result = GameResult(int(ResultPlayer0Win) + playerIdx)
+		if g.Timer != nil {
+			g.Timer.Stop()
+		}
+		return nil
+	}
+
+	// Check for draw
+	if g.Board.IsFull() {
+		g.Status = StatusFinished
+		g.Result = ResultDraw
+		if g.Timer != nil {
+			g.Timer.Stop()
+		}
+		return nil
+	}
+
+	// Switch turn
+	g.CurrentTurn = 1 - g.CurrentTurn
+	g.TurnStartedAt = time.Now()
+	g.startTimer()
+
 	return nil
 }
 
@@ -121,14 +205,38 @@ func (g *Game) RequestReplay(playerIdx int) bool {
 	return false
 }
 
-// TODO: reset resets the game for a new round
+// reset resets the game for a new round
 func (g *Game) reset() {
+	if g.Timer != nil {
+		g.Timer.Stop()
+	}
 
+	g.Board.Reset()
+	g.Status = StatusPlaying
+	g.Result = ResultNone
+	g.CurrentTurn = 0
+	g.MoveCount = 0
+	g.ReplayRequests = [2]bool{false, false}
+	g.TurnStartedAt = time.Now()
+	g.LastPlayedAt = time.Now()
+
+	// Reset timers to initial clock value
+	g.TimeRemaining[0] = g.InitialClock
+	g.TimeRemaining[1] = g.InitialClock
+
+	g.startTimer()
 }
 
 // TODO: Cleanup stops all timers and releases resources
 func (g *Game) Cleanup() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 
+	if g.Timer != nil {
+		g.Timer.Stop()
+		g.Timer = nil
+	}
+	g.TimerCallback = nil
 }
 
 // TODO: GetTimeRemaining returns remaining time for both players adjusted for current turn
