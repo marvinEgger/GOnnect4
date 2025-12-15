@@ -85,14 +85,14 @@ func (b *Board) buildGraph() {
 
 }
 
-// CanPlay checks if a column can accept a token
-func (b *Board) CanPlay(col int) bool {
+// canPlay checks if a column can accept a token
+func (b *Board) canPlay(col int) bool {
 	return col >= 0 && col < b.cols && b.colHeights[col] < b.rows
 }
 
 // Play drops a token in the given column for the given player
 func (b *Board) Play(col int, player Cell) (*Node, bool) {
-	if !b.CanPlay(col) {
+	if !b.canPlay(col) {
 		return nil, false
 	}
 
