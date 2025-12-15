@@ -45,7 +45,7 @@ func (n *Node) SetOwner(player Cell) {
 	n.Owner = player
 }
 
-// TODO: CountSequence counts consecutive nodes with same owner in given direction
+// CountSequence counts consecutive nodes with same owner in given direction
 func (n *Node) CountSequence(dir Direction) int {
 	if n.IsEmpty() {
 		return 0
@@ -62,7 +62,7 @@ func (n *Node) CountSequence(dir Direction) int {
 	return count
 }
 
-// TODO: CheckWin checks if placing a token at this node creates a winning sequence
+// CheckWin checks if placing a token at this node creates a winning sequence
 func (n *Node) CheckWin(winLength int) bool {
 
 	if n.IsEmpty() {
