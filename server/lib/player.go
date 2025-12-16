@@ -1,6 +1,11 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Marvin Egger marvin.egger@hotmail.ch
+// Created: 05.12.2025
 package lib
 
 import (
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,17 +24,34 @@ type Player struct {
 	Remaining time.Duration
 }
 
-// TODO: NewPlayer creates a new player with a unique ID
+// NewPlayer creates a new player with a unique ID
 func NewPlayer(username string, initialClock time.Duration) *Player {
-	return nil
+	username = strings.TrimSpace(username)
+	// check if username is empty
+	if username == "" {
+		return nil
+	}
+
+	// return the new player
+	return &Player{
+
+		ID:        PlayerID(newToken(tokenLength)),
+		Username:  username,
+		Connected: true,
+		Remaining: initialClock,
+	}
 }
 
-// TODO: SetConnected safely sets the connection status
+// SetConnected safely sets the connection status
 func (p *Player) SetConnected(connected bool) {
-
+	p.Lock()
+	defer p.Unlock()
+	p.Connected = connected
 }
 
-// TODO: IsConnected safely checks connection status
+// IsConnected safely checks connection status
 func (p *Player) IsConnected() bool {
-	return false
+	p.RLock()
+	defer p.RUnlock()
+	return p.Connected
 }
