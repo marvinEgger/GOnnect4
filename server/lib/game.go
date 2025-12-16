@@ -1,6 +1,14 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Marvin Egger marvin.egger@hotmail.ch
+// Created: 05.12.2025
+
 package lib
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"strings"
 	"sync"
 	"time"
 )
@@ -59,33 +67,136 @@ type Game struct {
 	TimerCallback func(string, int) // Called when timer expires with (gameCode, loserIdx)
 }
 
-// TODO: NewGame creates a new game with a random code
+// NewGame creates a new game with a random code
 func NewGame(initialClock time.Duration) *Game {
-	return nil
+	return &Game{
+		Code:          randomCode(codeLength),
+		Board:         NewBoard(),
+		Status:        StatusWaiting,
+		CreatedAt:     time.Now(),
+		InitialClock:  initialClock,
+		TimeRemaining: [2]time.Duration{initialClock, initialClock},
+	}
 }
 
-// TODO: AddPlayer adds a player to the game
-func (g *Game) AddPlayer(p *Player) bool {
+// AddPlayer adds a player to the game
+func (game *Game) AddPlayer(player *Player) bool {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+
+	if game.Status != StatusWaiting {
+		return false
+	}
+
+	for i := range game.Players {
+		if game.Players[i] == nil {
+			game.Players[i] = player
+			if i == 1 {
+				game.start()
+			}
+			return true
+		}
+	}
+
 	return false
+
 }
 
-// TODO: start begins the game when both players are ready
+// start begins the game when both players are ready
 func (g *Game) start() {
-
+	g.Status = StatusPlaying
+	g.TurnStartedAt = time.Now()
+	g.LastPlayedAt = time.Now()
+	g.startTimer()
 }
 
-// TODO: startTimer starts the timer for the current player
+// startTimer starts the timer for the current player
 func (g *Game) startTimer() {
+	if g.Timer != nil {
+		g.Timer.Stop()
+	}
 
+	remaining := g.TimeRemaining[g.CurrentTurn]
+	if remaining <= 0 {
+		// Time already expired
+		if g.TimerCallback != nil {
+			g.TimerCallback(g.Code, g.CurrentTurn)
+		}
+		return
+	}
+
+	// Capture values to avoid race condition
+	code := g.Code
+	playerIndex := g.CurrentTurn
+	g.Timer = time.AfterFunc(remaining, func() {
+		if g.TimerCallback != nil {
+			g.TimerCallback(code, playerIndex)
+		}
+	})
 }
 
-// TODO: stopTimer stops the timer and updates remaining time
+// stopTimer stops the timer and updates remaining time
 func (g *Game) stopTimer() {
-
+	if g.Timer != nil {
+		g.Timer.Stop()
+		elapsed := time.Since(g.TurnStartedAt)
+		g.TimeRemaining[g.CurrentTurn] -= elapsed
+		if g.TimeRemaining[g.CurrentTurn] < 0 {
+			g.TimeRemaining[g.CurrentTurn] = 0
+		}
+	}
 }
 
-// TODO: Play attempts to play a move in the given column
+// Play attempts to play a move in the given column
 func (g *Game) Play(playerIdx, col int) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.Status != StatusPlaying {
+		return ErrGameNotPlaying
+	}
+
+	if playerIdx != g.CurrentTurn {
+		return ErrNotYourTurn
+	}
+
+	// Stop timer and update time
+	g.stopTimer()
+
+	player := Cell(int(CellPlayer0) + playerIdx)
+	node, ok := g.Board.Play(col, player)
+	if !ok {
+		return ErrInvalidMove
+	}
+
+	g.MoveCount++
+	g.LastPlayedAt = time.Now()
+
+	// Check for win
+	if g.Board.CheckWin(node) {
+		g.Status = StatusFinished
+		g.Result = GameResult(int(ResultPlayer0Win) + playerIdx)
+		if g.Timer != nil {
+			g.Timer.Stop()
+		}
+		return nil
+	}
+
+	// Check for draw
+	if g.Board.IsFull() {
+		g.Status = StatusFinished
+		g.Result = ResultDraw
+		if g.Timer != nil {
+			g.Timer.Stop()
+		}
+		return nil
+	}
+
+	// Switch turn
+	g.CurrentTurn = 1 - g.CurrentTurn
+	g.TurnStartedAt = time.Now()
+	g.startTimer()
+
 	return nil
 }
 
@@ -94,14 +205,38 @@ func (g *Game) RequestReplay(playerIdx int) bool {
 	return false
 }
 
-// TODO: reset resets the game for a new round
+// reset resets the game for a new round
 func (g *Game) reset() {
+	if g.Timer != nil {
+		g.Timer.Stop()
+	}
 
+	g.Board.Reset()
+	g.Status = StatusPlaying
+	g.Result = ResultNone
+	g.CurrentTurn = 0
+	g.MoveCount = 0
+	g.ReplayRequests = [2]bool{false, false}
+	g.TurnStartedAt = time.Now()
+	g.LastPlayedAt = time.Now()
+
+	// Reset timers to initial clock value
+	g.TimeRemaining[0] = g.InitialClock
+	g.TimeRemaining[1] = g.InitialClock
+
+	g.startTimer()
 }
 
 // TODO: Cleanup stops all timers and releases resources
 func (g *Game) Cleanup() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 
+	if g.Timer != nil {
+		g.Timer.Stop()
+		g.Timer = nil
+	}
+	g.TimerCallback = nil
 }
 
 // TODO: GetTimeRemaining returns remaining time for both players adjusted for current turn
@@ -109,27 +244,51 @@ func (g *Game) GetTimeRemaining() [2]time.Duration {
 	return [2]time.Duration{}
 }
 
-// TODO: GetPlayerIndex returns the index of the given player
+// GetPlayerIndex returns the index of the given player
 func (g *Game) GetPlayerIndex(id PlayerID) int {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	for i, p := range g.Players {
+		if p != nil && p.ID == id {
+			return i
+		}
+	}
 	return -1
 }
 
-// TODO: HasPlayer checks if a player is in this game
+// HasPlayer checks if a player is in this game
 func (g *Game) HasPlayer(id PlayerID) bool {
-	return false
+	return g.GetPlayerIndex(id) >= 0
 }
 
-// TODO: IsFull checks if the game has 2 players
+// IsFull checks if the game has 2 players
 func (g *Game) IsFull() bool {
-	return false
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.Players[0] != nil && g.Players[1] != nil
 }
 
-// TODO: randomCode generates a random alphanumeric code
+// randomCode generates a random alphanumeric code
 func randomCode(length int) string {
-	return ""
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		panic("failed to generate random code: " + err.Error())
+	}
+
+	for i, b := range bytes {
+		bytes[i] = charset[b%byte(len(charset))]
+	}
+
+	return string(bytes)
 }
 
-// TODO: newToken generates a random hex token
+// newToken generates a random hex token
 func newToken(length int) string {
-	return ""
+	buffer := make([]byte, length)
+	if _, err := rand.Read(buffer); err != nil {
+		panic("failed to generate random token: " + err.Error())
+	}
+	return strings.ToUpper(hex.EncodeToString(buffer))
 }
