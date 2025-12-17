@@ -132,7 +132,7 @@ func handleConnect(this js.Value, args []js.Value) interface{} {
 
 func handleCreateGame(this js.Value, args []js.Value) interface{} {
 	lib.SendMessage("create_game", map[string]interface{}{})
-
+	showWaitingArea()
 	return nil
 }
 
@@ -320,15 +320,20 @@ func handleGameStart(data interface{}) {
 	state.SetGameCode(start.Code)
 	state.SetCurrentTurn(start.CurrentTurn)
 	state.SetPlayers(start.Players)
+	state.SetReplayRequested(false)
 	state.SetOpponentRequestedReplay(false)
 
 	// Reset board and hover
+	state.ResetBoard()
 	state.ClearHover()
 
 	// Find our player index
 	state.FindPlayerIndex()
 
 	updatePlayers()
+	hideGameCode()
+	hideReplayArea()
+	showGameActions()
 	lib.ShowScreen("game")
 	lib.Draw()
 	updateGameStatus()
@@ -353,15 +358,19 @@ func handleGameState(data interface{}) {
 
 	if gameState.Status == 1 {
 		// Playing
+		hideGameCode()
 		hideWaitingActions()
+
+		hideReplayArea()
+		showGameActions()
 		lib.ShowScreen("game")
 		lib.Draw()
 		updateGameStatus()
 	} else if gameState.Status == 0 {
 		// Waiting
-		showGameCodeInGame()
+		hideReplayArea()
+		lib.ShowScreen("lobby")
 		showWaitingActions()
-		lib.ShowScreen("game")
 	}
 }
 
@@ -449,7 +458,7 @@ func updateGameStatus() {
 		lib.SetText("game-status", "Your turn - Click a column to play")
 		lib.SetStyle("game-status", "color", "var(--success)")
 	} else {
-		lib.SetText("game-status", "Opponent'state turn")
+		lib.SetText("game-status", "Opponent's turn")
 		lib.SetStyle("game-status", "color", "var(--text-secondary)")
 	}
 }
@@ -486,6 +495,9 @@ func showGameOver(result int) {
 
 	lib.SetText("game-status", message)
 	lib.SetStyle("game-status", "color", color)
+
+	hideGameActions()
+	showReplayArea()
 }
 
 func showWaitingArea() {
@@ -507,9 +519,22 @@ func showWaitingArea() {
 	}
 }
 
-// TODO
 func resetLobby() {
+	lib.Hide("waiting-area")
+	lib.Show("create-game-btn")
 
+	separator := js.Global().Get("document").Call("querySelector", ".separator")
+	if !separator.IsNull() {
+		separator.Get("style").Set("display", "block")
+	}
+
+	joinSection := js.Global().Get("document").Call("querySelector", ".lobby-section:last-of-type")
+	if !joinSection.IsNull() {
+		joinSection.Get("style").Set("display", "block")
+	}
+
+	lib.SetValue("join-code-input", "")
+	lib.Get().SetGameCode("")
 }
 
 func showGameCodeInGame() {
@@ -522,6 +547,31 @@ func showGameCodeInGame() {
 	lib.SetText("game-code-info", code)
 }
 
+func hideGameCode() {
+	lib.Hide("game-code-area")
+}
+
+func showReplayArea() {
+	lib.Show("replay-area")
+	updateReplayButton()
+}
+
+func hideReplayArea() {
+	lib.Hide("replay-area")
+	state := lib.Get()
+	state.SetReplayRequested(false)
+	state.SetOpponentRequestedReplay(false)
+}
+
+func showGameActions() {
+	lib.ShowFlex("game-actions")
+	lib.Hide("waiting-actions")
+}
+
+func hideGameActions() {
+	lib.Hide("game-actions")
+}
+
 func showWaitingActions() {
 	lib.ShowFlex("waiting-actions")
 	lib.Hide("game-actions")
@@ -532,9 +582,9 @@ func hideWaitingActions() {
 }
 
 func updateReplayButton() {
-	s := lib.Get()
-	replayRequested := s.IsReplayRequested()
-	opponentRequested := s.IsOpponentRequestedReplay()
+	state := lib.Get()
+	replayRequested := state.IsReplayRequested()
+	opponentRequested := state.IsOpponentRequestedReplay()
 
 	btn := lib.GetElement("replay-btn")
 	if btn.IsNull() {

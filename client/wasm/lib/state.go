@@ -70,6 +70,13 @@ func (state *State) IsMyTurn() bool {
 	return state.CurrentTurn == state.PlayerIdx
 }
 
+// ResetBoard clears the board
+func (state *State) ResetBoard() {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.Board = [Rows][Cols]int{}
+}
+
 // ClearHover removes hover preview
 func (state *State) ClearHover() {
 	state.mutex.Lock()
