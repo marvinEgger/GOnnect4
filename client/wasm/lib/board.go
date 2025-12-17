@@ -31,8 +31,8 @@ const (
 )
 
 var (
-	canvas js.Value
-	ctx    js.Value
+	canvas         js.Value
+	canevasContext js.Value
 )
 
 // Initialize sets up the canvas
@@ -41,24 +41,26 @@ func Initialize() {
 	if canvas.IsNull() {
 		return
 	}
-	ctx = canvas.Call("getContext", "2d")
+	canevasContext = canvas.Call("getContext", "2d")
 }
 
 // Draw renders the entire board
 func Draw() {
-	if ctx.IsNull() {
+	if canevasContext.IsNull() {
 		return
 	}
 
+	state := Get()
+	board := state.GetBoard()
 	width := canvas.Get("width").Int()
 	height := canvas.Get("height").Int()
 
 	// Clear
-	ctx.Call("clearRect", 0, 0, width, height)
+	canevasContext.Call("clearRect", 0, 0, width, height)
 
 	// Background
-	ctx.Set("fillStyle", ColorBoardBg)
-	ctx.Call("fillRect", 0, 0, width, height)
+	canevasContext.Set("fillStyle", ColorBoardBg)
+	canevasContext.Call("fillRect", 0, 0, width, height)
 
 	// Draw cells
 	for row := 0; row < Rows; row++ {
@@ -67,39 +69,140 @@ func Draw() {
 			y := row * CellSize
 
 			// Cell border
-			ctx.Set("strokeStyle", ColorBoardBorder)
-			ctx.Set("lineWidth", 2)
-			ctx.Call("strokeRect", x, y, CellSize, CellSize)
+			canevasContext.Set("strokeStyle", ColorBoardBorder)
+			canevasContext.Set("lineWidth", 2)
+			canevasContext.Call("strokeRect", x, y, CellSize, CellSize)
+
+			// Token
+			drawToken(x+CellSize/2, y+CellSize/2, board[row][col], 1.0)
 		}
+	}
+
+	// Draw hover preview
+	hoverCol := state.GetHoverCol()
+	if hoverCol >= 0 && hoverCol < Cols && state.IsMyTurn() {
+		drawHoverPreview(hoverCol, board)
 	}
 }
 
-// TODO: drawHoverPreview draws ghost token preview
+// drawHoverPreview draws ghost token preview
 func drawHoverPreview(col int, board [Rows][Cols]int) {
+	// Find lowest empty row
+	row := -1
+	for r := Rows - 1; r >= 0; r-- {
+		if board[r][col] == 0 {
+			row = r
+			break
+		}
+	}
 
+	if row >= 0 {
+		x := col * CellSize
+		y := row * CellSize
+		playerToken := Get().GetPlayerIdx() + 1
+		drawToken(x+CellSize/2, y+CellSize/2, playerToken, PreviewAlpha)
+	}
 }
 
-// TODO: drawToken draws a single token
+// drawToken draws a single token
 func drawToken(cx, cy, owner int, alpha float64) {
+	canevasContext.Call("beginPath")
+	canevasContext.Call("arc", cx, cy, TokenRadius, 0, 2*3.14159)
 
+	switch owner {
+	case 0:
+		// Empty - dark hole
+		canevasContext.Set("fillStyle", ColorEmpty)
+	case 1:
+		// Player 0 - Red
+		if alpha < 1.0 {
+			canevasContext.Set("fillStyle", ColorPlayer0Alpha+formatAlpha(alpha)+")")
+		} else {
+			canevasContext.Set("fillStyle", ColorPlayer0)
+		}
+	case 2:
+		// Player 1 - Yellow
+		if alpha < 1.0 {
+			canevasContext.Set("fillStyle", ColorPlayer1Alpha+formatAlpha(alpha)+")")
+		} else {
+			canevasContext.Set("fillStyle", ColorPlayer1)
+		}
+	}
+
+	canevasContext.Call("fill")
+
+	// Shine effect for tokens
+	if owner > 0 {
+		canevasContext.Call("beginPath")
+		canevasContext.Call("arc", cx-ShineOffset, cy-ShineOffset, ShineRadius, 0, 2*3.14159)
+		shineAlpha := ShineAlpha * alpha
+		canevasContext.Set("fillStyle", "rgba(255, 255, 255, "+formatAlpha(shineAlpha)+")")
+		canevasContext.Call("fill")
+	}
 }
 
-// TODO: formatAlpha formats alpha value for CSS
+// formatAlpha formats alpha value for CSS
 func formatAlpha(alpha float64) string {
-	return ""
+	// Simple float to string conversion
+	if alpha >= 1.0 {
+		return "1"
+	}
+	if alpha <= 0.0 {
+		return "0"
+	}
+	// Convert to string with 2 decimal places
+	return js.Global().Get("Number").New(alpha).Call("toFixed", 2).String()
 }
 
-// TODO: HandleClick processes click on board
+// HandleClick processes click on board
 func HandleClick(event js.Value) {
+	if !Get().IsMyTurn() {
+		return
+	}
 
+	rect := canvas.Call("getBoundingClientRect")
+	clientX := event.Get("clientX").Float()
+	rectLeft := rect.Get("left").Float()
+	rectWidth := rect.Get("width").Float()
+
+	// Normalize x to canvas coordinates (0-560)
+	x := (clientX - rectLeft) / rectWidth * 560.0
+	col := int(x / CellSize)
+
+	if col >= 0 && col < Cols {
+		// Send play message via WebSocket
+		// This will be called from main.go where we have access to WebSocket
+		js.Global().Call("playColumn", col)
+	}
 }
 
-// TODO: HandleHover updates hover column
+// HandleHover updates hover column
 func HandleHover(event js.Value) {
+	if !Get().IsMyTurn() {
+		return
+	}
 
+	rect := canvas.Call("getBoundingClientRect")
+	clientX := event.Get("clientX").Float()
+	rectLeft := rect.Get("left").Float()
+	rectWidth := rect.Get("width").Float()
+
+	// Normalize x to canvas coordinates (0-560)
+	x := (clientX - rectLeft) / rectWidth * 560.0
+	col := int(x / CellSize)
+
+	state := Get()
+	if col >= 0 && col < Cols && col != state.GetHoverCol() {
+		state.SetHoverCol(col)
+		Draw()
+	}
 }
 
-// TODO: HandleLeave clears hover preview
+// HandleLeave clears hover preview
 func HandleLeave(event js.Value) {
-
+	state := Get()
+	if state.GetHoverCol() != -1 {
+		state.ClearHover()
+		Draw()
+	}
 }
