@@ -1,3 +1,9 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Astrit Aslani astrit.aslani@gmail.com
+// Created: 08.12.2025
+//go:build js && wasm
+
 package lib
 
 import "sync"
@@ -16,7 +22,7 @@ type Player struct {
 
 // State holds all game state (singleton pattern)
 type State struct {
-	mu sync.RWMutex
+	mutex sync.RWMutex
 
 	PlayerID                string
 	GameCode                string
@@ -32,128 +38,154 @@ type State struct {
 var instance *State
 var once sync.Once
 
-// TODO: Get returns the singleton state instance
+// Get returns the singleton state instance
 func Get() *State {
-	return nil
+	once.Do(func() {
+		instance = &State{
+			PlayerIdx: -1,
+			HoverCol:  -1,
+		}
+	})
+	return instance
 }
 
-// TODO: ResetBoard clears the board
-func (s *State) ResetBoard() {
+// FindPlayerIndex finds our player index by ID
+func (state *State) FindPlayerIndex() int {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+
+	for i := 0; i < len(state.Players); i++ {
+		if state.Players[i].ID == state.PlayerID {
+			state.PlayerIdx = i
+			return i
+		}
+	}
+	return -1
 }
 
-// GetHoverCol returns current hover column
-func (s *State) GetHoverCol() int {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.HoverCol
-}
-
-// SetHoverCol updates hover column
-func (s *State) SetHoverCol(col int) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.HoverCol = col
+// IsMyTurn checks if it's our turn
+func (state *State) IsMyTurn() bool {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.CurrentTurn == state.PlayerIdx
 }
 
 // ClearHover removes hover preview
-func (s *State) ClearHover() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.HoverCol = -1
+func (state *State) ClearHover() {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.HoverCol = -1
 }
 
-// TODO: IsMyTurn checks if it's our turn
-func (s *State) IsMyTurn() bool {
-	return false
+// GetHoverCol returns current hover column
+func (state *State) GetHoverCol() int {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.HoverCol
 }
 
-// TODO: GetBoard returns a copy of the board
-func (s *State) GetBoard() [Rows][Cols]int {
-	return [Rows][Cols]int{}
+// SetHoverCol updates hover column
+func (state *State) SetHoverCol(col int) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.HoverCol = col
 }
 
-// TODO: SetBoard updates the entire board
-func (s *State) SetBoard(board [Rows][Cols]int) {
-
+// GetBoard returns a copy of the board
+func (state *State) GetBoard() [Rows][Cols]int {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.Board
 }
 
-// TODO: GetPlayerIdx returns player index
-func (s *State) GetPlayerIdx() int {
-	return -1
+// SetBoard updates the entire board
+func (state *State) SetBoard(board [Rows][Cols]int) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.Board = board
 }
 
-// TODO: SetPlayerIdx updates player index
-func (s *State) SetPlayerIdx(idx int) {
-
+// GetPlayerIdx returns player index
+func (state *State) GetPlayerIdx() int {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.PlayerIdx
 }
 
-// TODO: FindPlayerIndex finds our player index by ID
-func (s *State) FindPlayerIndex() int {
-	return -1
+// SetPlayerIdx updates player index
+func (state *State) SetPlayerIdx(idx int) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.PlayerIdx = idx
 }
 
-// TODO: SetPlayerID updates player ID
-func (s *State) SetPlayerID(id string) {
-
+// GetPlayerID returns player ID
+func (state *State) GetPlayerID() string {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.PlayerID
 }
 
-// TODO: GetPlayerID returns player ID
-func (s *State) GetPlayerID() string {
-	return ""
+// SetPlayerID updates player ID
+func (state *State) SetPlayerID(id string) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.PlayerID = id
 }
 
-// TODO: SetGameCode updates game code
-func (s *State) SetGameCode(code string) {
-
+// GetGameCode returns game code
+func (state *State) GetGameCode() string {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.GameCode
 }
 
-// TODO: GetGameCode returns game code
-func (s *State) GetGameCode() string {
-	return ""
-}
-
-// SetCurrentTurn updates current turn
-func (s *State) SetCurrentTurn(turn int) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.CurrentTurn = turn
+// SetGameCode updates game code
+func (state *State) SetGameCode(code string) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.GameCode = code
 }
 
 // GetCurrentTurn returns current turn
-func (s *State) GetCurrentTurn() int {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.CurrentTurn
+func (state *State) GetCurrentTurn() int {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.CurrentTurn
+}
+
+// SetCurrentTurn updates current turn
+func (state *State) SetCurrentTurn(turn int) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.CurrentTurn = turn
+}
+
+// GetPlayers returns players array
+func (state *State) GetPlayers() [2]Player {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.Players
 }
 
 // SetPlayers updates players array
-func (s *State) SetPlayers(players [2]Player) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.Players = players
-}
-
-// TODO: GetPlayers returns players array
-func (s *State) GetPlayers() [2]Player {
-	return [2]Player{}
-}
-
-// TODO: SetReplayRequested updates replay request status
-func (s *State) SetReplayRequested(requested bool) {
-
+func (state *State) SetPlayers(players [2]Player) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.Players = players
 }
 
 // TODO: IsReplayRequested returns replay request status
-func (s *State) IsReplayRequested() bool {
+func (state *State) IsReplayRequested() bool {
+	return false
+}
+
+// TODO: IsOpponentRequestedReplay returns opponent's replay request status
+func (state *State) IsOpponentRequestedReplay() bool {
 	return false
 }
 
 // TODO: SetOpponentRequestedReplay updates opponent's replay request
-func (s *State) SetOpponentRequestedReplay(requested bool) {
+func (state *State) SetOpponentRequestedReplay(requested bool) {
 
-}
-
-// TODO: IsOpponentRequestedReplay returns opponent's replay request status
-func (s *State) IsOpponentRequestedReplay() bool {
-	return false
 }
