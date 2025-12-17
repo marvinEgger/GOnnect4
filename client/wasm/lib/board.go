@@ -3,7 +3,6 @@
 // Author:  Astrit Aslani astrit.aslani@gmail.com
 // Created: 08.12.2025
 //go:build js && wasm
-// +build js,wasm
 
 package lib
 
