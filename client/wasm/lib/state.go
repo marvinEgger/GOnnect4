@@ -175,17 +175,30 @@ func (state *State) SetPlayers(players [2]Player) {
 	state.Players = players
 }
 
-// TODO: IsReplayRequested returns replay request status
+// SetReplayRequested updates replay request status
+func (state *State) SetReplayRequested(requested bool) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.ReplayRequested = requested
+}
+
+// IsReplayRequested returns replay request status
 func (state *State) IsReplayRequested() bool {
-	return false
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.ReplayRequested
 }
 
-// TODO: IsOpponentRequestedReplay returns opponent's replay request status
-func (state *State) IsOpponentRequestedReplay() bool {
-	return false
-}
-
-// TODO: SetOpponentRequestedReplay updates opponent's replay request
+// SetOpponentRequestedReplay updates opponent's replay request
 func (state *State) SetOpponentRequestedReplay(requested bool) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.OpponentRequestedReplay = requested
+}
 
+// IsOpponentRequestedReplay returns opponent's replay request status
+func (state *State) IsOpponentRequestedReplay() bool {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.OpponentRequestedReplay
 }

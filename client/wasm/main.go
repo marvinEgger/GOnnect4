@@ -174,7 +174,10 @@ func handleCopyGameCode(this js.Value, args []js.Value) any {
 }
 
 func handleReplay(this js.Value, args []js.Value) interface{} {
+	state := lib.Get()
+	state.SetReplayRequested(true)
 	lib.SendMessage("replay", map[string]interface{}{})
+	updateReplayButton()
 	return nil
 }
 
@@ -389,6 +392,7 @@ func handleGameOver(data interface{}) {
 
 func handleReplayRequest() {
 	lib.Get().SetOpponentRequestedReplay(true)
+	updateReplayButton()
 }
 
 func handleError(data interface{}) {
@@ -525,6 +529,35 @@ func showWaitingActions() {
 
 func hideWaitingActions() {
 	lib.Hide("waiting-actions")
+}
+
+func updateReplayButton() {
+	s := lib.Get()
+	replayRequested := s.IsReplayRequested()
+	opponentRequested := s.IsOpponentRequestedReplay()
+
+	btn := lib.GetElement("replay-btn")
+	if btn.IsNull() {
+		return
+	}
+
+	if replayRequested && opponentRequested {
+		btn.Set("textContent", "Restarting...")
+		btn.Set("disabled", true)
+	} else if replayRequested {
+		btn.Set("textContent", "Waiting for opponent...")
+		btn.Set("disabled", true)
+	} else if opponentRequested {
+		btn.Set("textContent", "Accept Replay")
+		btn.Set("disabled", false)
+		lib.AddClass("replay-btn", "btn-success")
+		lib.RemoveClass("replay-btn", "btn-primary")
+	} else {
+		btn.Set("textContent", "Request Replay")
+		btn.Set("disabled", false)
+		lib.AddClass("replay-btn", "btn-primary")
+		lib.RemoveClass("replay-btn", "btn-success")
+	}
 }
 
 // remarshal converts interface{} to struct via JSON
