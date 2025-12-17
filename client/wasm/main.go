@@ -3,13 +3,14 @@
 // Author:  Astrit Aslani astrit.aslani@gmail.com
 // Created: 08.12.2025
 //go:build js && wasm
-// +build js,wasm
 
 package main
 
 import (
 	"encoding/json"
+	"sync"
 	"syscall/js"
+	"time"
 
 	"github.com/marvinEgger/GOnnect4/client/wasm/lib"
 )
@@ -49,25 +50,6 @@ func setupGlobalFunctions() {
 			lib.SendMessage("play", map[string]interface{}{
 				"column": col,
 			})
-
-			// For demo: simulate local play
-			s := lib.Get()
-			if s.IsMyTurn() {
-				board := s.GetBoard()
-				// Find lowest empty row in column
-				for row := lib.Rows - 1; row >= 0; row-- {
-					if board[row][col] == 0 {
-						board[row][col] = s.GetPlayerIdx() + 1
-						s.SetBoard(board)
-						// Switch turn
-						nextTurn := 1 - s.GetCurrentTurn()
-						s.SetCurrentTurn(nextTurn)
-						lib.Draw()
-						updateGameStatus()
-						break
-					}
-				}
-			}
 		}
 		return nil
 	}))
@@ -145,38 +127,11 @@ func handleConnect(this js.Value, args []js.Value) interface{} {
 	// Try to connect to server
 	lib.Connect(username, "", handleMessage)
 
-	// For demo/testing: simulate welcome after short delay if no server response
-	js.Global().Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// If still on login screen, simulate welcome
-		if lib.GetElement("login-screen").Get("classList").Call("contains", "active").Bool() {
-			lib.Console("No server response, simulating welcome for UI testing")
-			s := lib.Get()
-			s.SetPlayerID("demo-player-id")
-			lib.SetLocalStorage("playerID", "demo-player-id")
-			lib.SetLocalStorage("username", username)
-			lib.SetText("welcome-message", "Welcome, "+username+" !")
-			resetLobby()
-			lib.ShowScreen("lobby")
-		}
-		return nil
-	}), 500)
-
 	return nil
 }
 
 func handleCreateGame(this js.Value, args []js.Value) interface{} {
 	lib.SendMessage("create_game", map[string]interface{}{})
-
-	// For demo/testing: simulate game creation if no server
-	js.Global().Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		s := lib.Get()
-		if s.GetGameCode() == "" {
-			lib.Console("No server response, simulating game creation for UI testing")
-			s.SetGameCode("DEMO42")
-			showWaitingArea()
-		}
-		return nil
-	}), 300)
 
 	return nil
 }
@@ -191,65 +146,34 @@ func handleJoinGame(this js.Value, args []js.Value) interface{} {
 	lib.SendMessage("join_game", map[string]interface{}{
 		"code": code,
 	})
-
-	// For demo/testing: simulate game start if no server
-	js.Global().Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		// Simulate game start
-		lib.Console("No server response, simulating game start for UI testing")
-		s := lib.Get()
-		s.SetGameCode(code)
-		s.SetCurrentTurn(0)
-		s.SetPlayerIdx(1) // Joiner is player 1
-		s.SetPlayers([2]lib.Player{
-			{ID: "opponent-id", Username: "Opponent"},
-			{ID: s.GetPlayerID(), Username: lib.GetLocalStorage("username")},
-		})
-		s.ResetBoard()
-		s.ClearHover()
-
-		updatePlayers()
-		lib.ShowScreen("game")
-		lib.Draw()
-		updateGameStatus()
-		return nil
-	}), 300)
-
 	return nil
 }
 
-func handleCopyCode(this js.Value, args []js.Value) interface{} {
-	s := lib.Get()
-	code := s.GetGameCode()
+func handleCopyCode(this js.Value, args []js.Value) any {
+	code := lib.Get().GetGameCode()
 
-	clipboard := js.Global().Get("navigator").Get("clipboard")
-	clipboard.Call("writeText", code).Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		lib.ShowMessage("lobby-message", "Code copied!", "success")
-		return nil
-	}))
+	js.Global().
+		Get("navigator").
+		Get("clipboard").
+		Call("writeText", code)
 
-	return nil
+	lib.ShowMessage("lobby-message", "Code copied!", "success")
+	return js.Undefined()
 }
 
-func handleCopyGameCode(this js.Value, args []js.Value) interface{} {
-	s := lib.Get()
-	code := s.GetGameCode()
+func handleCopyGameCode(this js.Value, args []js.Value) any {
+	code := lib.Get().GetGameCode()
+	js.Global().Get("navigator").Get("clipboard").Call("writeText", code)
 
-	clipboard := js.Global().Get("navigator").Get("clipboard")
-	clipboard.Call("writeText", code).Call("then", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		lib.SetText("copy-code-game-btn", "Copied!")
-		js.Global().Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			lib.SetText("copy-code-game-btn", "Copy")
-			return nil
-		}), 2000)
-		return nil
-	}))
+	lib.SetText("copy-code-game-btn", "Copied!")
+	time.AfterFunc(2*time.Second, func() {
+		lib.SetText("copy-code-game-btn", "Copy")
+	})
 
-	return nil
+	return js.Undefined()
 }
 
 func handleReplay(this js.Value, args []js.Value) interface{} {
-	s := lib.Get()
-	s.SetReplayRequested(true)
 	lib.SendMessage("replay", map[string]interface{}{})
 	return nil
 }
@@ -263,21 +187,11 @@ func handleForfeit(this js.Value, args []js.Value) interface{} {
 
 func handleBackToLobby(this js.Value, args []js.Value) interface{} {
 	lib.SendMessage("leave_lobby", map[string]interface{}{})
-
-	// For demo: go back to lobby directly
-	lib.Get().SetGameCode("")
-	resetLobby()
-	lib.ShowScreen("lobby")
 	return nil
 }
 
 func handleCancelGame(this js.Value, args []js.Value) interface{} {
 	lib.SendMessage("leave_lobby", map[string]interface{}{})
-
-	// For demo: go back to lobby directly
-	lib.Get().SetGameCode("")
-	resetLobby()
-	lib.ShowScreen("lobby")
 	return nil
 }
 
@@ -290,10 +204,10 @@ func handleLogout(this js.Value, args []js.Value) interface{} {
 	lib.Close()
 
 	// Reset state
-	s := lib.Get()
-	s.SetPlayerID("")
-	s.SetGameCode("")
-	s.SetPlayerIdx(-1)
+	state := lib.Get()
+	state.SetPlayerID("")
+	state.SetGameCode("")
+	state.SetPlayerIdx(-1)
 
 	// Clear input and go to login
 	lib.SetValue("username-input", "")
@@ -304,19 +218,36 @@ func handleLogout(this js.Value, args []js.Value) interface{} {
 
 // autoConnect attempts to reconnect with saved credentials
 func autoConnect(username, savedPlayerID string) {
-	// Set a timeout
-	timeoutID := js.Global().Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		lib.Console("Auto-reconnect timeout - clearing saved credentials")
-		lib.RemoveLocalStorage("playerID")
-		lib.RemoveLocalStorage("username")
-		lib.Close()
-		lib.ShowScreen("login")
-		return nil
-	}), 3000)
+	done := make(chan struct{})
+	timedOut := make(chan struct{})
+	var once sync.Once
 
-	// Custom message handler that clears timeout
+	// Timeout goroutine
+	go func() {
+		select {
+		case <-time.After(3 * time.Second):
+			close(timedOut)
+			lib.Console("Auto-reconnect timeout - clearing saved credentials")
+			lib.RemoveLocalStorage("playerID")
+			lib.RemoveLocalStorage("username")
+			lib.Close()
+			lib.ShowScreen("login")
+		case <-done:
+			// connecté/activité reçue avant timeout
+		}
+	}()
+
+	// Custom message handler that cancels timeout (safe close)
 	customHandler := func(msg lib.Message) {
-		js.Global().Call("clearTimeout", timeoutID)
+		// if already timeout, just ignore
+		select {
+		case <-timedOut:
+			return
+		default:
+		}
+
+		// stop the timeout (once !)
+		once.Do(func() { close(done) })
 		handleMessage(msg)
 	}
 
@@ -342,7 +273,7 @@ func handleMessage(msg lib.Message) {
 	case "game_over":
 		handleGameOver(msg.Data)
 	case "replay_request":
-		handleReplayRequest(msg.Data)
+		handleReplayRequest()
 	case "error":
 		handleError(msg.Data)
 	}
@@ -354,8 +285,8 @@ func handleWelcome(data interface{}) {
 		return
 	}
 
-	s := lib.Get()
-	s.SetPlayerID(welcome.PlayerID)
+	state := lib.Get()
+	state.SetPlayerID(welcome.PlayerID)
 
 	lib.SetLocalStorage("playerID", welcome.PlayerID)
 	lib.SetLocalStorage("username", welcome.Username)
@@ -382,19 +313,17 @@ func handleGameStart(data interface{}) {
 		return
 	}
 
-	s := lib.Get()
-	s.SetGameCode(start.Code)
-	s.SetCurrentTurn(start.CurrentTurn)
-	s.SetPlayers(start.Players)
-	s.SetReplayRequested(false)
-	s.SetOpponentRequestedReplay(false)
+	state := lib.Get()
+	state.SetGameCode(start.Code)
+	state.SetCurrentTurn(start.CurrentTurn)
+	state.SetPlayers(start.Players)
+	state.SetOpponentRequestedReplay(false)
 
 	// Reset board and hover
-	s.ResetBoard()
-	s.ClearHover()
+	state.ClearHover()
 
 	// Find our player index
-	s.FindPlayerIndex()
+	state.FindPlayerIndex()
 
 	updatePlayers()
 	lib.ShowScreen("game")
@@ -408,23 +337,25 @@ func handleGameState(data interface{}) {
 		return
 	}
 
-	s := lib.Get()
-	s.SetGameCode(gameState.Code)
-	s.SetCurrentTurn(gameState.CurrentTurn)
-	s.SetBoard(gameState.Board)
-	s.SetPlayers(gameState.Players)
+	state := lib.Get()
+	state.SetGameCode(gameState.Code)
+	state.SetCurrentTurn(gameState.CurrentTurn)
+	state.SetBoard(gameState.Board)
+	state.SetPlayers(gameState.Players)
 
 	// Find our player index
-	s.FindPlayerIndex()
+	state.FindPlayerIndex()
 
 	updatePlayers()
 
-	if gameState.Status == 1 { // Playing
+	if gameState.Status == 1 {
+		// Playing
 		hideWaitingActions()
 		lib.ShowScreen("game")
 		lib.Draw()
 		updateGameStatus()
-	} else if gameState.Status == 0 { // Waiting
+	} else if gameState.Status == 0 {
+		// Waiting
 		showGameCodeInGame()
 		showWaitingActions()
 		lib.ShowScreen("game")
@@ -437,9 +368,9 @@ func handleMove(data interface{}) {
 		return
 	}
 
-	s := lib.Get()
-	s.SetBoard(move.Board)
-	s.SetCurrentTurn(move.NextTurn)
+	state := lib.Get()
+	state.SetBoard(move.Board)
+	state.SetCurrentTurn(move.NextTurn)
 
 	lib.Draw()
 	updateGameStatus()
@@ -456,7 +387,7 @@ func handleGameOver(data interface{}) {
 	showGameOver(gameOver.Result)
 }
 
-func handleReplayRequest(data interface{}) {
+func handleReplayRequest() {
 	lib.Get().SetOpponentRequestedReplay(true)
 }
 
@@ -472,10 +403,10 @@ func handleError(data interface{}) {
 // UI Helper Functions
 
 func updatePlayers() {
-	s := lib.Get()
-	players := s.GetPlayers()
-	currentTurn := s.GetCurrentTurn()
-	playerIdx := s.GetPlayerIdx()
+	state := lib.Get()
+	players := state.GetPlayers()
+	currentTurn := state.GetCurrentTurn()
+	playerIdx := state.GetPlayerIdx()
 
 	for i := 0; i < 2; i++ {
 		cardID := "player-" + string(rune('0'+i))
@@ -508,24 +439,25 @@ func updatePlayers() {
 }
 
 func updateGameStatus() {
-	s := lib.Get()
+	state := lib.Get()
 
-	if s.IsMyTurn() {
+	if state.IsMyTurn() {
 		lib.SetText("game-status", "Your turn - Click a column to play")
 		lib.SetStyle("game-status", "color", "var(--success)")
 	} else {
-		lib.SetText("game-status", "Opponent's turn")
+		lib.SetText("game-status", "Opponent'state turn")
 		lib.SetStyle("game-status", "color", "var(--text-secondary)")
 	}
 }
 
 func showGameOver(result int) {
-	s := lib.Get()
-	playerIdx := s.GetPlayerIdx()
+	state := lib.Get()
+	playerIdx := state.GetPlayerIdx()
 
 	var message, color string
 
-	if result == 1 { // Player 0 win
+	if result == 1 {
+		// Player 0 win
 		if playerIdx == 0 {
 			message = "You won!"
 			color = "var(--success)"
@@ -533,7 +465,8 @@ func showGameOver(result int) {
 			message = "You lost"
 			color = "var(--danger)"
 		}
-	} else if result == 2 { // Player 1 win
+	} else if result == 2 {
+		// Player 1 win
 		if playerIdx == 1 {
 			message = "You won!"
 			color = "var(--success)"
@@ -541,7 +474,8 @@ func showGameOver(result int) {
 			message = "You lost"
 			color = "var(--danger)"
 		}
-	} else if result == 3 { // Draw
+	} else if result == 3 {
+		// Draw
 		message = "Draw"
 		color = "var(--text-secondary)"
 	}
@@ -551,8 +485,8 @@ func showGameOver(result int) {
 }
 
 func showWaitingArea() {
-	s := lib.Get()
-	code := s.GetGameCode()
+	state := lib.Get()
+	code := state.GetGameCode()
 
 	lib.SetText("game-code-display", code)
 	lib.Show("waiting-area")
@@ -575,8 +509,8 @@ func resetLobby() {
 }
 
 func showGameCodeInGame() {
-	s := lib.Get()
-	code := s.GetGameCode()
+	state := lib.Get()
+	code := state.GetGameCode()
 
 	lib.ShowFlex("game-code-area")
 	lib.SetText("game-status", "Waiting for opponent...")
