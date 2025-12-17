@@ -29,14 +29,6 @@ func SetStyle(id, property, value string) {
 	}
 }
 
-// SetValue sets value of an input element
-func SetValue(id, value string) {
-	el := GetElement(id)
-	if !el.IsNull() {
-		el.Set("value", value)
-	}
-}
-
 // GetValue gets value of an input element
 func GetValue(id string) string {
 	el := GetElement(id)
@@ -44,6 +36,14 @@ func GetValue(id string) string {
 		return ""
 	}
 	return el.Get("value").String()
+}
+
+// SetValue sets value of an input element
+func SetValue(id, value string) {
+	el := GetElement(id)
+	if !el.IsNull() {
+		el.Set("value", value)
+	}
 }
 
 // AddClass adds a CSS class to an element
@@ -129,11 +129,6 @@ func GetLocalStorage(key string) string {
 // RemoveLocalStorage removes an item from localStorage
 func RemoveLocalStorage(key string) {
 	js.Global().Get("localStorage").Call("removeItem", key)
-}
-
-// Alert shows a browser alert
-func Alert(message string) {
-	js.Global().Call("alert", message)
 }
 
 // Confirm shows a confirmation dialog
