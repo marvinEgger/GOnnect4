@@ -23,6 +23,7 @@ type State struct {
 	PlayerIdx               int
 	CurrentTurn             int
 	Board                   [Rows][Cols]int
+	HoverCol                int
 	Players                 [2]Player
 	ReplayRequested         bool
 	OpponentRequestedReplay bool
@@ -38,6 +39,27 @@ func Get() *State {
 
 // TODO: ResetBoard clears the board
 func (s *State) ResetBoard() {
+}
+
+// GetHoverCol returns current hover column
+func (s *State) GetHoverCol() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.HoverCol
+}
+
+// SetHoverCol updates hover column
+func (s *State) SetHoverCol(col int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.HoverCol = col
+}
+
+// ClearHover removes hover preview
+func (s *State) ClearHover() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.HoverCol = -1
 }
 
 // TODO: IsMyTurn checks if it's our turn
