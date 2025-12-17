@@ -200,8 +200,23 @@ func (g *Game) Play(playerIdx, col int) error {
 	return nil
 }
 
-// TODO: RequestReplay marks a player's desire to replay
+// RequestReplay marks a player's desire to replay
 func (g *Game) RequestReplay(playerIdx int) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.Status != StatusFinished {
+		return false
+	}
+
+	g.ReplayRequests[playerIdx] = true
+
+	// Both players agreed
+	if g.ReplayRequests[0] && g.ReplayRequests[1] {
+		g.reset()
+		return true
+	}
+
 	return false
 }
 
@@ -227,7 +242,7 @@ func (g *Game) reset() {
 	g.startTimer()
 }
 
-// TODO: Cleanup stops all timers and releases resources
+// Cleanup stops all timers and releases resources
 func (g *Game) Cleanup() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -239,9 +254,21 @@ func (g *Game) Cleanup() {
 	g.TimerCallback = nil
 }
 
-// TODO: GetTimeRemaining returns remaining time for both players adjusted for current turn
+// GetTimeRemaining returns remaining time for both players adjusted for current turn
 func (g *Game) GetTimeRemaining() [2]time.Duration {
-	return [2]time.Duration{}
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	times := g.TimeRemaining
+	if g.Status == StatusPlaying {
+		// Adjust for current player's elapsed time
+		elapsed := time.Since(g.TurnStartedAt)
+		times[g.CurrentTurn] -= elapsed
+		if times[g.CurrentTurn] < 0 {
+			times[g.CurrentTurn] = 0
+		}
+	}
+	return times
 }
 
 // GetPlayerIndex returns the index of the given player
