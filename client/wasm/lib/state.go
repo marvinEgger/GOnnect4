@@ -33,6 +33,7 @@ type State struct {
 	Players                 [2]Player
 	ReplayRequested         bool
 	OpponentRequestedReplay bool
+	TimeRemaining           [2]int64 // milliseconds
 }
 
 var instance *State
@@ -208,4 +209,18 @@ func (state *State) IsOpponentRequestedReplay() bool {
 	state.mutex.RLock()
 	defer state.mutex.RUnlock()
 	return state.OpponentRequestedReplay
+}
+
+// SetTimeRemaining updates time remaining
+func (state *State) SetTimeRemaining(times [2]int64) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.TimeRemaining = times
+}
+
+// GetTimeRemaining returns time remaining
+func (state *State) GetTimeRemaining() [2]int64 {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.TimeRemaining
 }

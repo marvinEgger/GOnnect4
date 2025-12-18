@@ -206,6 +206,9 @@ func handleLogout(this js.Value, args []js.Value) interface{} {
 	// Close websocket
 	lib.Close()
 
+	// Stop timer
+	lib.Stop()
+
 	// Reset state
 	state := lib.Get()
 	state.SetPlayerID("")
@@ -322,6 +325,7 @@ func handleGameStart(data interface{}) {
 	state.SetPlayers(start.Players)
 	state.SetReplayRequested(false)
 	state.SetOpponentRequestedReplay(false)
+	state.SetTimeRemaining(start.TimeRemaining)
 
 	// Reset board and hover
 	state.ResetBoard()
@@ -337,6 +341,7 @@ func handleGameStart(data interface{}) {
 	lib.ShowScreen("game")
 	lib.Draw()
 	updateGameStatus()
+	lib.Start()
 }
 
 func handleGameState(data interface{}) {
@@ -350,6 +355,7 @@ func handleGameState(data interface{}) {
 	state.SetCurrentTurn(gameState.CurrentTurn)
 	state.SetBoard(gameState.Board)
 	state.SetPlayers(gameState.Players)
+	state.SetTimeRemaining(gameState.TimeRemaining)
 
 	// Find our player index
 	state.FindPlayerIndex()
@@ -366,11 +372,13 @@ func handleGameState(data interface{}) {
 		lib.ShowScreen("game")
 		lib.Draw()
 		updateGameStatus()
+		lib.Start()
 	} else if gameState.Status == 0 {
 		// Waiting
 		hideReplayArea()
 		lib.ShowScreen("lobby")
 		showWaitingActions()
+		lib.Stop()
 	}
 }
 
@@ -383,6 +391,7 @@ func handleMove(data interface{}) {
 	state := lib.Get()
 	state.SetBoard(move.Board)
 	state.SetCurrentTurn(move.NextTurn)
+	state.SetTimeRemaining(move.TimeRemaining)
 
 	lib.Draw()
 	updateGameStatus()
@@ -397,6 +406,7 @@ func handleGameOver(data interface{}) {
 	lib.Get().SetBoard(gameOver.Board)
 	lib.Draw()
 	showGameOver(gameOver.Result)
+	lib.Stop()
 }
 
 func handleReplayRequest() {
