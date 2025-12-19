@@ -10,23 +10,25 @@ import "syscall/js"
 
 // Constants
 const (
-	CellSize     = 80
-	TokenRadius  = 28
-	ShineRadius  = 8
-	ShineOffset  = 8
-	ShineAlpha   = 0.3
-	PreviewAlpha = 0.4
+	CellSize       = 80
+	TokenRadius    = 28
+	HighlightWidth = 8
+	ShineRadius    = 8
+	ShineOffset    = 8
+	ShineAlpha     = 0.65
+	PreviewAlpha   = 0.55
 )
 
 // Token colors
 const (
 	ColorEmpty        = "#0f172a"
-	ColorPlayer0      = "#dc2626"
-	ColorPlayer1      = "#fbbf24"
-	ColorPlayer0Alpha = "rgba(220, 38, 38, "
-	ColorPlayer1Alpha = "rgba(251, 191, 36, "
-	ColorBoardBg      = "#2962FF"
-	ColorBoardBorder  = "#1d4ed8"
+	ColorPlayer0      = "#ce3262"
+	ColorPlayer1      = "#fddd00"
+	ColorPlayer0Alpha = "rgba(206, 48, 98, "
+	ColorPlayer1Alpha = "rgba(253, 221, 0, "
+	ColorBoardBg      = "#00add8"
+	ColorBoardBorder  = "#5dc9e2"
+	ColorHighlight    = "#5dc9e2"
 )
 
 var (
@@ -51,6 +53,7 @@ func Draw() {
 
 	state := Get()
 	board := state.GetBoard()
+	lastMove := state.GetLastMove()
 	width := canvas.Get("width").Int()
 	height := canvas.Get("height").Int()
 
@@ -74,6 +77,11 @@ func Draw() {
 
 			// Token
 			drawToken(x+CellSize/2, y+CellSize/2, board[row][col], 1.0)
+
+			// Highlight last move
+			if lastMove != nil && lastMove.Col == col && lastMove.Row == row {
+				drawHighlight(x+CellSize/2, y+CellSize/2)
+			}
 		}
 	}
 
@@ -138,6 +146,15 @@ func drawToken(cx, cy, owner int, alpha float64) {
 		canevasContext.Set("fillStyle", "rgba(255, 255, 255, "+formatAlpha(shineAlpha)+")")
 		canevasContext.Call("fill")
 	}
+}
+
+// drawHighlight draws a ring around the last played token
+func drawHighlight(cx, cy int) {
+	canevasContext.Call("beginPath")
+	canevasContext.Call("arc", cx, cy, TokenRadius, 0, 2*3.14159)
+	canevasContext.Set("strokeStyle", ColorHighlight)
+	canevasContext.Set("lineWidth", HighlightWidth)
+	canevasContext.Call("stroke")
 }
 
 // formatAlpha formats alpha value for CSS
