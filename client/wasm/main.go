@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 	"syscall/js"
 	"time"
@@ -88,6 +89,16 @@ func setupEventListeners() {
 		}))
 		canvas.Call("addEventListener", "mouseleave", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			lib.HandleLeave(args[0])
+			return nil
+		}))
+	}
+
+	// Input uppercase handler
+	input := lib.GetElement("join-code-input")
+	if !input.IsNull() {
+		input.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			val := input.Get("value").String()
+			input.Set("value", strings.ToUpper(val))
 			return nil
 		}))
 	}
