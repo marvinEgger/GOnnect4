@@ -214,10 +214,16 @@ func (g *Game) RequestReplay(playerIdx int) bool {
 	// Both players agreed
 	if g.ReplayRequests[0] && g.ReplayRequests[1] {
 		g.reset()
+		g.swapBeginningPlayer()
 		return true
 	}
 
 	return false
+}
+
+// swapBeginningPlayer chenges the turn order
+func (g *Game) swapBeginningPlayer() {
+	g.Players[0], g.Players[1] = g.Players[1], g.Players[0]
 }
 
 // reset resets the game for a new round
