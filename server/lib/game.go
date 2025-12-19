@@ -43,6 +43,12 @@ const (
 	ResultDraw
 )
 
+// LastMove represents the coordinates of the last move
+type LastMove struct {
+	Col int `json:"col"`
+	Row int `json:"row"`
+}
+
 // Game represents a Connect 4 game session
 type Game struct {
 	mu     sync.RWMutex
@@ -56,6 +62,7 @@ type Game struct {
 	MoveCount    int
 	LastPlayedAt time.Time
 	CreatedAt    time.Time
+	LastMove     *LastMove
 
 	ReplayRequests [2]bool
 
@@ -171,6 +178,7 @@ func (g *Game) Play(playerIdx, col int) error {
 
 	g.MoveCount++
 	g.LastPlayedAt = time.Now()
+	g.LastMove = &LastMove{Col: node.Col, Row: node.Row}
 
 	// Check for win
 	if g.Board.CheckWin(node) {
@@ -258,6 +266,7 @@ func (g *Game) reset() {
 	g.ReplayRequests = [2]bool{false, false}
 	g.TurnStartedAt = time.Now()
 	g.LastPlayedAt = time.Now()
+	g.LastMove = nil
 
 	// Reset timers to initial clock value
 	g.TimeRemaining[0] = g.InitialClock
