@@ -7,27 +7,28 @@
 
 /* Theme */
 :root {
-    --bg-dark: #0f172a;
-    --bg-card: #1e293b;
-    --bg-hover: #334155;
+    --bg-dark: #18222C;
+    --bg-card: #253443;
+    --bg-hover: #414153;
 
-    --primary: #3b82f6;
-    --primary-hover: #2563eb;
-    --success: #22c55e;
-    --success-hover: #16a34a;
-    --warning: #eab308;
-    --warning-hover: #ca8a04;
-    --danger: #ef4444;
+    --primary: #00add8;
+    --primary-hover: #5dc9e2;
+    --success: #2FBF9A;
+    --success-hover: #58D6B8;
+    --warning: #E6B450;
+    --warning-hover: #F0C56E;
+    --danger: #E06C75;
+    --danger-hover: #F08C94;
 
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
 
     --border: #475569;
-    --border-active: #3b82f6;
+    --border-active: #5dc9e2;
 
-    --red-token: #dc2626;
-    --yellow-token: #fbbf24;
+    --red-token: #ce3262;
+    --yellow-token: #fddd00;
 }
 
 /* Layout */
@@ -356,7 +357,9 @@ input[type="text"]::placeholder {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Game screen layout */
@@ -464,8 +467,12 @@ input[type="text"]::placeholder {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
 }
 
 /* Game status and actions */
