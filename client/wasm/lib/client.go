@@ -46,6 +46,7 @@ type GameStateData struct {
 	Players        [2]Player `json:"players"`
 	TimeRemaining  [2]int64  `json:"time_remaining"`
 	ReplayRequests [2]bool   `json:"replay_requests"`
+	LastMove       *LastMove `json:"last_move,omitempty"`
 }
 
 // MoveData contains move information

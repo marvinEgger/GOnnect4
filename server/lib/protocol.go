@@ -121,4 +121,5 @@ type GameStateData struct {
 	MoveCount      int              `json:"move_count"`
 	TimeRemaining  [2]int64         `json:"time_remaining"` // milliseconds
 	ReplayRequests [2]bool          `json:"replay_requests"`
+	LastMove       *LastMove        `json:"last_move,omitempty"`
 }

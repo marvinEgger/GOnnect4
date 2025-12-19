@@ -361,6 +361,7 @@ func (s *Server) buildGameState(game *lib.Game, playerID lib.PlayerID) lib.GameS
 		MoveCount:      game.MoveCount,
 		TimeRemaining:  s.getTimeRemaining(game),
 		ReplayRequests: game.ReplayRequests,
+		LastMove:       game.LastMove,
 	}
 }
 

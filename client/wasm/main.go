@@ -380,6 +380,11 @@ func handleGameState(data interface{}) {
 		}
 	}
 
+	// Restore last move
+	if gameState.LastMove != nil {
+		state.SetLastMove(gameState.LastMove.Col, gameState.LastMove.Row)
+	}
+
 	updatePlayers()
 
 	if gameState.Status == 1 {
