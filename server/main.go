@@ -6,13 +6,11 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
-
 	"time"
 
 	"github.com/coder/websocket"
@@ -29,42 +27,29 @@ const (
 
 // Server manages all games and player connections
 type Server struct {
-	mu              sync.RWMutex
-	gamesByCode     map[string]*lib.Game
-	lobby           map[lib.PlayerID]*lib.Player
-	bindingBySocket map[*websocket.Conn]*Binding
+	mu          sync.RWMutex
+	gamesByCode map[string]*lib.Game
+	lobby       map[lib.PlayerID]*lib.Player
 }
 
-// Binding links a websocket connection to a player and game
-type Binding struct {
-	GameCode string
-	PlayerID lib.PlayerID
-}
-
-// NewServer  creates a new game server
+// NewServer creates a new game server
 func NewServer() *Server {
 	return &Server{
-		gamesByCode:     make(map[string]*lib.Game),
-		lobby:           make(map[lib.PlayerID]*lib.Player),
-		bindingBySocket: make(map[*websocket.Conn]*Binding),
+		gamesByCode: make(map[string]*lib.Game),
+		lobby:       make(map[lib.PlayerID]*lib.Player),
 	}
 }
 
-// writeJSON sends a JSON message to a websocket
-func writeJSON(ctx context.Context, conn *websocket.Conn, msg lib.Message) error {
-	return wsjson.Write(ctx, conn, msg)
-}
-
 // sendError sends an error message to a client
-func (s *Server) sendError(ctx context.Context, conn *websocket.Conn, message string) {
-	_ = writeJSON(ctx, conn, lib.Message{
+func (s *Server) sendError(client *lib.Client, message string) {
+	client.Send(lib.Message{
 		Type: lib.MsgError,
 		Data: lib.ErrorData{Message: message},
 	})
 }
 
 // handleLogin processes login/reconnection
-func (s *Server) handleLogin(ctx context.Context, conn *websocket.Conn, binding *Binding, data lib.LoginData) {
+func (s *Server) handleLogin(client *lib.Client, data lib.LoginData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -75,14 +60,13 @@ func (s *Server) handleLogin(ctx context.Context, conn *websocket.Conn, binding 
 	if data.PlayerID != nil {
 		if p, exists := s.lobby[*data.PlayerID]; exists {
 			player = p
-			player.SetConnected(true)
 			player.Username = data.Username
 
 			// Check if player is in a game
 			for code, g := range s.gamesByCode {
 				if g.HasPlayer(player.ID) {
 					game = g
-					binding.GameCode = code
+					client.GameCode = code
 					break
 				}
 			}
@@ -92,16 +76,18 @@ func (s *Server) handleLogin(ctx context.Context, conn *websocket.Conn, binding 
 	if player == nil {
 		player = lib.NewPlayer(data.Username, initialClockDuration)
 		if player == nil {
-			s.sendError(ctx, conn, "Invalid username")
+			s.sendError(client, "Invalid username")
 			return
 		}
 		s.lobby[player.ID] = player
 	}
 
-	binding.PlayerID = player.ID
+	// Associate client with player
+	client.PlayerID = player.ID
+	player.SetSender(client)
 
 	// Send welcome
-	_ = writeJSON(ctx, conn, lib.Message{
+	player.Send(lib.Message{
 		Type: lib.MsgWelcome,
 		Data: lib.WelcomeData{
 			PlayerID: player.ID,
@@ -111,18 +97,18 @@ func (s *Server) handleLogin(ctx context.Context, conn *websocket.Conn, binding 
 
 	// If reconnecting to a game, send game state
 	if game != nil {
-		s.sendGameState(ctx, conn, game, player.ID)
+		s.sendGameState(player, game)
 	}
 }
 
 // handleCreateGame creates a new game
-func (s *Server) handleCreateGame(ctx context.Context, conn *websocket.Conn, binding *Binding) {
+func (s *Server) handleCreateGame(client *lib.Client) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	player := s.lobby[binding.PlayerID]
+	player := s.lobby[client.PlayerID]
 	if player == nil {
-		s.sendError(ctx, conn, "Player not found")
+		s.sendError(client, "Player not found")
 		return
 	}
 
@@ -130,38 +116,37 @@ func (s *Server) handleCreateGame(ctx context.Context, conn *websocket.Conn, bin
 	game.TimerCallback = s.handleTimeout
 	game.AddPlayer(player)
 	s.gamesByCode[game.Code] = game
-	binding.GameCode = game.Code
+	client.GameCode = game.Code
 
-	_ = writeJSON(ctx, conn, lib.Message{
+	player.Send(lib.Message{
 		Type: lib.MsgGameCreated,
 		Data: lib.GameCreatedData{Code: game.Code},
 	})
 
-	s.sendGameState(ctx, conn, game, binding.PlayerID)
-
+	s.sendGameState(player, game)
 }
 
 // handleJoinGame joins an existing game
-func (s *Server) handleJoinGame(ctx context.Context, conn *websocket.Conn, binding *Binding, data lib.JoinGameData) {
+func (s *Server) handleJoinGame(client *lib.Client, data lib.JoinGameData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	game, exists := s.gamesByCode[data.Code]
 	if !exists {
-		s.sendError(ctx, conn, "Game not found")
+		s.sendError(client, "Game not found")
 		return
 	}
 
-	player := s.lobby[binding.PlayerID]
+	player := s.lobby[client.PlayerID]
 	if player == nil {
-		s.sendError(ctx, conn, "Player not found")
+		s.sendError(client, "Player not found")
 		return
 	}
 
 	// Reconnection
 	if game.HasPlayer(player.ID) {
-		binding.GameCode = game.Code
-		s.sendGameState(ctx, conn, game, player.ID)
+		client.GameCode = game.Code
+		s.sendGameState(player, game)
 		s.broadcastToGame(game, lib.Message{
 			Type: lib.MsgGameState,
 			Data: s.buildGameState(game, player.ID),
@@ -171,11 +156,11 @@ func (s *Server) handleJoinGame(ctx context.Context, conn *websocket.Conn, bindi
 
 	// New join
 	if !game.AddPlayer(player) {
-		s.sendError(ctx, conn, "Cannot join game")
+		s.sendError(client, "Cannot join game")
 		return
 	}
 
-	binding.GameCode = game.Code
+	client.GameCode = game.Code
 
 	// Notify both players
 	s.broadcastToGame(game, lib.Message{
@@ -190,25 +175,25 @@ func (s *Server) handleJoinGame(ctx context.Context, conn *websocket.Conn, bindi
 }
 
 // handlePlay processes a move
-func (s *Server) handlePlay(ctx context.Context, conn *websocket.Conn, binding *Binding, data lib.PlayData) {
+func (s *Server) handlePlay(client *lib.Client, data lib.PlayData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	game, exists := s.gamesByCode[binding.GameCode]
+	game, exists := s.gamesByCode[client.GameCode]
 	if !exists {
-		s.sendError(ctx, conn, "Game not found")
+		s.sendError(client, "Game not found")
 		return
 	}
 
-	playerIdx := game.GetPlayerIndex(binding.PlayerID)
+	playerIdx := game.GetPlayerIndex(client.PlayerID)
 	if playerIdx < 0 {
-		s.sendError(ctx, conn, "Player not in game")
+		s.sendError(client, "Player not in game")
 		return
 	}
 
 	err := game.Play(playerIdx, data.Column)
 	if err != nil {
-		s.sendError(ctx, conn, err.Error())
+		s.sendError(client, err.Error())
 		return
 	}
 
@@ -227,7 +212,7 @@ func (s *Server) handlePlay(ctx context.Context, conn *websocket.Conn, binding *
 	})
 
 	// Check game over
-	if game.Status == lib.StatusFinished {
+	if game.GetStatus() == lib.StatusFinished {
 		s.broadcastToGame(game, lib.Message{
 			Type: lib.MsgGameOver,
 			Data: lib.GameOverData{
@@ -236,23 +221,22 @@ func (s *Server) handlePlay(ctx context.Context, conn *websocket.Conn, binding *
 			},
 		})
 	}
-
 }
 
 // handleReplay processes replay request
-func (s *Server) handleReplay(ctx context.Context, conn *websocket.Conn, binding *Binding) {
+func (s *Server) handleReplay(client *lib.Client) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	game, exists := s.gamesByCode[binding.GameCode]
+	game, exists := s.gamesByCode[client.GameCode]
 	if !exists {
-		s.sendError(ctx, conn, "Game not found")
+		s.sendError(client, "Game not found")
 		return
 	}
 
-	playerIdx := game.GetPlayerIndex(binding.PlayerID)
+	playerIdx := game.GetPlayerIndex(client.PlayerID)
 	if playerIdx < 0 {
-		s.sendError(ctx, conn, "Player not in game")
+		s.sendError(client, "Player not in game")
 		return
 	}
 
@@ -274,30 +258,26 @@ func (s *Server) handleReplay(ctx context.Context, conn *websocket.Conn, binding
 			},
 		})
 	}
-
 }
 
 // handleForfeit processes forfeit request
-func (s *Server) handleForfeit(ctx context.Context, conn *websocket.Conn, binding *Binding) {
+func (s *Server) handleForfeit(client *lib.Client) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	game, exists := s.gamesByCode[binding.GameCode]
+	game, exists := s.gamesByCode[client.GameCode]
 	if !exists {
-		s.sendError(ctx, conn, "Game not found")
+		s.sendError(client, "Game not found")
 		return
 	}
 
-	playerIdx := game.GetPlayerIndex(binding.PlayerID)
+	playerIdx := game.GetPlayerIndex(client.PlayerID)
 	if playerIdx < 0 {
-		s.sendError(ctx, conn, "Player not in game")
+		s.sendError(client, "Player not in game")
 		return
 	}
 
-	// Opponent wins
-	opponentIdx := 1 - playerIdx
-	game.Status = lib.StatusFinished
-	game.Result = lib.GameResult(opponentIdx + 1) // 1 for player 0, 2 for player 1
+	game.Forfeit(playerIdx)
 
 	s.broadcastToGame(game, lib.Message{
 		Type: lib.MsgGameOver,
@@ -309,28 +289,38 @@ func (s *Server) handleForfeit(ctx context.Context, conn *websocket.Conn, bindin
 }
 
 // handleLeaveLobby processes leave lobby request
-func (s *Server) handleLeaveLobby(ctx context.Context, conn *websocket.Conn, binding *Binding) {
+func (s *Server) handleLeaveLobby(client *lib.Client) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// If player is in a waiting game, delete it
-	if binding.GameCode != "" {
-		if game, exists := s.gamesByCode[binding.GameCode]; exists {
-			if game.Status == lib.StatusWaiting {
-				// Clean up the waiting game
+	if client.GameCode != "" {
+		if game, exists := s.gamesByCode[client.GameCode]; exists {
+			if game.GetStatus() == lib.StatusWaiting {
 				game.Cleanup()
-				delete(s.gamesByCode, binding.GameCode)
+				delete(s.gamesByCode, client.GameCode)
+			} else if game.GetStatus() == lib.StatusPlaying {
+				playerIdx := game.GetPlayerIndex(client.PlayerID)
+				if playerIdx >= 0 {
+					game.Forfeit(playerIdx)
+					s.broadcastToGame(game, lib.Message{
+						Type: lib.MsgGameOver,
+						Data: lib.GameOverData{
+							Result: game.Result,
+							Board:  game.Board.ToArray(),
+						},
+					})
+				}
 			}
 		}
 	}
 
-	// Clear game binding
-	binding.GameCode = ""
+	client.GameCode = ""
 
 	// Send welcome to return to lobby
-	player := s.lobby[binding.PlayerID]
+	player := s.lobby[client.PlayerID]
 	if player != nil {
-		_ = writeJSON(ctx, conn, lib.Message{
+		player.Send(lib.Message{
 			Type: lib.MsgWelcome,
 			Data: lib.WelcomeData{
 				PlayerID: player.ID,
@@ -338,36 +328,37 @@ func (s *Server) handleLeaveLobby(ctx context.Context, conn *websocket.Conn, bin
 			},
 		})
 	}
-
 }
 
 // sendGameState sends current game state to a player
-func (s *Server) sendGameState(ctx context.Context, conn *websocket.Conn, game *lib.Game, playerID lib.PlayerID) {
-	_ = writeJSON(ctx, conn, lib.Message{
+func (s *Server) sendGameState(player *lib.Player, game *lib.Game) {
+	player.Send(lib.Message{
 		Type: lib.MsgGameState,
-		Data: s.buildGameState(game, playerID),
+		Data: s.buildGameState(game, player.ID),
 	})
 }
 
 // buildGameState constructs game state data
 func (s *Server) buildGameState(game *lib.Game, playerID lib.PlayerID) lib.GameStateData {
 	return lib.GameStateData{
-		Code:          game.Code,
-		Status:        game.Status,
-		Result:        game.Result,
-		Board:         game.Board.ToArray(),
-		Players:       s.getPlayerInfos(game),
-		PlayerIdx:     game.GetPlayerIndex(playerID),
-		CurrentTurn:   game.CurrentTurn,
-		MoveCount:     game.MoveCount,
-		TimeRemaining: s.getTimeRemaining(game),
+		Code:           game.Code,
+		Status:         game.GetStatus(),
+		Result:         game.Result,
+		Board:          game.Board.ToArray(),
+		Players:        s.getPlayerInfos(game),
+		PlayerIdx:      game.GetPlayerIndex(playerID),
+		CurrentTurn:    game.CurrentTurn,
+		MoveCount:      game.MoveCount,
+		TimeRemaining:  s.getTimeRemaining(game),
+		ReplayRequests: game.ReplayRequests,
 	}
 }
 
 // getPlayerInfos gets public info for both players
 func (s *Server) getPlayerInfos(game *lib.Game) [2]lib.PlayerInfo {
 	var infos [2]lib.PlayerInfo
-	for i, p := range game.Players {
+	players := game.GetPlayers()
+	for i, p := range players {
 		if p != nil {
 			infos[i] = lib.PlayerInfo{
 				ID:        p.ID,
@@ -394,11 +385,10 @@ func (s *Server) handleTimeout(gameCode string, loserIdx int) {
 	defer s.mu.Unlock()
 
 	game, exists := s.gamesByCode[gameCode]
-	if !exists || game.Status != lib.StatusPlaying {
+	if !exists || game.GetStatus() != lib.StatusPlaying {
 		return
 	}
 
-	// Opponent wins
 	opponentIdx := 1 - loserIdx
 	game.Status = lib.StatusFinished
 	game.Result = lib.GameResult(opponentIdx + 1)
@@ -414,9 +404,10 @@ func (s *Server) handleTimeout(gameCode string, loserIdx int) {
 
 // broadcastToGame sends a message to all players in a game
 func (s *Server) broadcastToGame(game *lib.Game, msg lib.Message) {
-	for conn, binding := range s.bindingBySocket {
-		if binding.GameCode == game.Code {
-			_ = writeJSON(context.Background(), conn, msg)
+	players := game.GetPlayers()
+	for _, p := range players {
+		if p != nil {
+			p.Send(msg)
 		}
 	}
 }
@@ -425,24 +416,22 @@ func (s *Server) broadcastToGame(game *lib.Game, msg lib.Message) {
 func (s *Server) cleanupStaleGames() {
 	now := time.Now()
 
-	// Remove finished games older than grace period
 	for code, game := range s.gamesByCode {
 		shouldDelete := false
 
-		if game.Status == lib.StatusFinished {
-			// Delete finished games after grace period
+		if game.GetStatus() == lib.StatusFinished {
 			if now.Sub(game.LastPlayedAt) > reconnectGracePeriod {
 				shouldDelete = true
 			}
-		} else if game.Status == lib.StatusWaiting {
-			// Delete waiting games with no players or old games
-			if game.Players[0] == nil || now.Sub(game.CreatedAt) > reconnectGracePeriod {
+		} else if game.GetStatus() == lib.StatusWaiting {
+			players := game.GetPlayers()
+			if players[0] == nil || now.Sub(game.CreatedAt) > reconnectGracePeriod {
 				shouldDelete = true
 			}
-		} else if game.Status == lib.StatusPlaying {
-			// Check if both players disconnected
+		} else if game.GetStatus() == lib.StatusPlaying {
 			bothDisconnected := true
-			for _, p := range game.Players {
+			players := game.GetPlayers()
+			for _, p := range players {
 				if p != nil && p.IsConnected() {
 					bothDisconnected = false
 					break
@@ -459,7 +448,6 @@ func (s *Server) cleanupStaleGames() {
 		}
 	}
 
-	// Remove disconnected players not in any game
 	for id, player := range s.lobby {
 		if !player.IsConnected() {
 			inGame := false
@@ -474,7 +462,6 @@ func (s *Server) cleanupStaleGames() {
 			}
 		}
 	}
-
 }
 
 // handleWebSocket handles websocket connections
@@ -486,27 +473,28 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to accept websocket: %v", err)
 		return
 	}
-	defer conn.Close(websocket.StatusNormalClosure, "")
 
-	ctx := r.Context()
-	binding := &Binding{}
+	client := lib.NewClient(conn)
 
-	s.mu.Lock()
-	s.bindingBySocket[conn] = binding
-	s.mu.Unlock()
+	go client.WritePump()
 
 	defer func() {
 		s.mu.Lock()
-		delete(s.bindingBySocket, conn)
-		if binding.PlayerID != "" {
-			if player := s.lobby[binding.PlayerID]; player != nil {
-				player.SetConnected(false)
+		if client.PlayerID != "" {
+			if player := s.lobby[client.PlayerID]; player != nil {
+				// Only unset if this client is still the active sender
+				// This handles race conditions where a new connection might have taken over
+				// We can't easily check equality of interfaces, but we can check if it's connected
+				// A more robust way would be to have an ID on the sender, but for now:
+				player.SetSender(nil)
 			}
 		}
 		s.cleanupStaleGames()
 		s.mu.Unlock()
+		client.Close()
 	}()
 
+	ctx := r.Context()
 	for {
 		var msg lib.Message
 		err := wsjson.Read(ctx, conn, &msg)
@@ -514,43 +502,42 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		s.handleMessage(ctx, conn, binding, msg)
+		s.handleMessage(client, msg)
 	}
-
 }
 
 // handleMessage routes messages to appropriate handlers
-func (s *Server) handleMessage(ctx context.Context, conn *websocket.Conn, binding *Binding, msg lib.Message) {
+func (s *Server) handleMessage(client *lib.Client, msg lib.Message) {
 	switch msg.Type {
 	case lib.MsgLogin:
 		var data lib.LoginData
 		if err := mapToStruct(msg.Data, &data); err == nil {
-			s.handleLogin(ctx, conn, binding, data)
+			s.handleLogin(client, data)
 		}
 
 	case lib.MsgCreateGame:
-		s.handleCreateGame(ctx, conn, binding)
+		s.handleCreateGame(client)
 
 	case lib.MsgJoinGame:
 		var data lib.JoinGameData
 		if err := mapToStruct(msg.Data, &data); err == nil {
-			s.handleJoinGame(ctx, conn, binding, data)
+			s.handleJoinGame(client, data)
 		}
 
 	case lib.MsgPlay:
 		var data lib.PlayData
 		if err := mapToStruct(msg.Data, &data); err == nil {
-			s.handlePlay(ctx, conn, binding, data)
+			s.handlePlay(client, data)
 		}
 
 	case lib.MsgReplay:
-		s.handleReplay(ctx, conn, binding)
+		s.handleReplay(client)
 
 	case lib.MsgForfeit:
-		s.handleForfeit(ctx, conn, binding)
+		s.handleForfeit(client)
 
 	case lib.MsgLeaveLobby:
-		s.handleLeaveLobby(ctx, conn, binding)
+		s.handleLeaveLobby(client)
 	}
 }
 
@@ -572,5 +559,4 @@ func main() {
 	addr := defaultListenAddress
 	fmt.Printf("Server starting on %s\n", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
-
 }

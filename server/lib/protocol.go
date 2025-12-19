@@ -111,13 +111,14 @@ type ErrorData struct {
 
 // GameStateData contains full game state for reconnection
 type GameStateData struct {
-	Code          string           `json:"code"`
-	Status        GameStatus       `json:"status"`
-	Result        GameResult       `json:"result"`
-	Board         [Rows][Cols]Cell `json:"board"`
-	Players       [2]PlayerInfo    `json:"players"`
-	PlayerIdx     int              `json:"player_idx"`
-	CurrentTurn   int              `json:"current_turn"`
-	MoveCount     int              `json:"move_count"`
-	TimeRemaining [2]int64         `json:"time_remaining"` // milliseconds
+	Code           string           `json:"code"`
+	Status         GameStatus       `json:"status"`
+	Result         GameResult       `json:"result"`
+	Board          [Rows][Cols]Cell `json:"board"`
+	Players        [2]PlayerInfo    `json:"players"`
+	PlayerIdx      int              `json:"player_idx"`
+	CurrentTurn    int              `json:"current_turn"`
+	MoveCount      int              `json:"move_count"`
+	TimeRemaining  [2]int64         `json:"time_remaining"` // milliseconds
+	ReplayRequests [2]bool          `json:"replay_requests"`
 }

@@ -279,15 +279,17 @@ func handleMessage(msg lib.Message) {
 	case "game_over":
 		handleGameOver(msg.Data)
 	case "replay_request":
-		handleReplayRequest()
+		handleReplayRequest(msg.Data)
 	case "error":
 		handleError(msg.Data)
 	}
 }
 
 func handleWelcome(data interface{}) {
+	lib.Console("handleWelcome: processing")
 	var welcome lib.WelcomeData
 	if err := remarshal(data, &welcome); err != nil {
+		lib.Console("handleWelcome: remarshal failed: " + err.Error())
 		return
 	}
 
@@ -304,8 +306,10 @@ func handleWelcome(data interface{}) {
 }
 
 func handleGameCreated(data interface{}) {
+	lib.Console("handleGameCreated: processing")
 	var created lib.GameCreatedData
 	if err := remarshal(data, &created); err != nil {
+		lib.Console("handleGameCreated: remarshal failed: " + err.Error())
 		return
 	}
 
@@ -314,10 +318,13 @@ func handleGameCreated(data interface{}) {
 }
 
 func handleGameStart(data interface{}) {
+	lib.Console("handleGameStart: processing")
 	var start lib.GameStartData
 	if err := remarshal(data, &start); err != nil {
+		lib.Console("handleGameStart: remarshal failed: " + err.Error())
 		return
 	}
+	lib.Console("handleGameStart: success")
 
 	state := lib.Get()
 	state.SetGameCode(start.Code)
@@ -345,8 +352,10 @@ func handleGameStart(data interface{}) {
 }
 
 func handleGameState(data interface{}) {
+	lib.Console("handleGameState: processing")
 	var gameState lib.GameStateData
 	if err := remarshal(data, &gameState); err != nil {
+		lib.Console("handleGameState: remarshal failed: " + err.Error())
 		return
 	}
 
@@ -359,6 +368,16 @@ func handleGameState(data interface{}) {
 
 	// Find our player index
 	state.FindPlayerIndex()
+
+	// Restore replay state
+	if gameState.Status == 2 { // Finished
+		myIdx := state.GetPlayerIdx()
+		opponentIdx := 1 - myIdx
+		if myIdx >= 0 && myIdx < 2 {
+			state.SetReplayRequested(gameState.ReplayRequests[myIdx])
+			state.SetOpponentRequestedReplay(gameState.ReplayRequests[opponentIdx])
+		}
+	}
 
 	updatePlayers()
 
@@ -379,12 +398,23 @@ func handleGameState(data interface{}) {
 		lib.ShowScreen("lobby")
 		showWaitingActions()
 		lib.Stop()
+	} else if gameState.Status == 2 {
+		// Finished
+		hideGameCode()
+		hideWaitingActions()
+		showGameActions()
+		lib.ShowScreen("game")
+		lib.Draw()
+		showGameOver(gameState.Result)
+		lib.Stop()
 	}
 }
 
 func handleMove(data interface{}) {
+	lib.Console("handleMove: processing")
 	var move lib.MoveData
 	if err := remarshal(data, &move); err != nil {
+		lib.Console("handleMove: remarshal failed: " + err.Error())
 		return
 	}
 
@@ -398,8 +428,10 @@ func handleMove(data interface{}) {
 }
 
 func handleGameOver(data interface{}) {
+	lib.Console("handleGameOver: processing")
 	var gameOver lib.GameOverData
 	if err := remarshal(data, &gameOver); err != nil {
+		lib.Console("handleGameOver: remarshal failed: " + err.Error())
 		return
 	}
 
@@ -409,9 +441,20 @@ func handleGameOver(data interface{}) {
 	lib.Stop()
 }
 
-func handleReplayRequest() {
-	lib.Get().SetOpponentRequestedReplay(true)
-	updateReplayButton()
+func handleReplayRequest(data interface{}) {
+	lib.Console("handleReplayRequest: processing")
+	var req lib.ReplayRequestData
+	if err := remarshal(data, &req); err != nil {
+		lib.Console("handleReplayRequest: remarshal failed: " + err.Error())
+		return
+	}
+
+	// Only set opponent requested if it's not us
+	state := lib.Get()
+	if req.PlayerIdx != state.GetPlayerIdx() {
+		state.SetOpponentRequestedReplay(true)
+		updateReplayButton()
+	}
 }
 
 func handleError(data interface{}) {
@@ -624,7 +667,12 @@ func updateReplayButton() {
 func remarshal(in interface{}, out interface{}) error {
 	bytes, err := json.Marshal(in)
 	if err != nil {
+		lib.Console("Error marshaling in remarshal: " + err.Error())
 		return err
 	}
-	return json.Unmarshal(bytes, out)
+	err = json.Unmarshal(bytes, out)
+	if err != nil {
+		lib.Console("Error unmarshaling in remarshal: " + err.Error())
+	}
+	return err
 }

@@ -38,12 +38,14 @@ type GameStartData struct {
 
 // GameStateData contains full game state
 type GameStateData struct {
-	Code          string    `json:"code"`
-	Status        int       `json:"status"`
-	CurrentTurn   int       `json:"current_turn"`
-	Board         [6][7]int `json:"board"`
-	Players       [2]Player `json:"players"`
-	TimeRemaining [2]int64  `json:"time_remaining"`
+	Code           string    `json:"code"`
+	Status         int       `json:"status"`
+	Result         int       `json:"result"`
+	CurrentTurn    int       `json:"current_turn"`
+	Board          [6][7]int `json:"board"`
+	Players        [2]Player `json:"players"`
+	TimeRemaining  [2]int64  `json:"time_remaining"`
+	ReplayRequests [2]bool   `json:"replay_requests"`
 }
 
 // MoveData contains move information
@@ -60,6 +62,11 @@ type MoveData struct {
 type GameOverData struct {
 	Result int       `json:"result"`
 	Board  [6][7]int `json:"board"`
+}
+
+// ReplayRequestData contains replay request information
+type ReplayRequestData struct {
+	PlayerIdx int `json:"player_idx"`
 }
 
 // ErrorData contains error information
