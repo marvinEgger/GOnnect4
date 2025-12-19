@@ -8,7 +8,6 @@ package main
 
 import (
 	"encoding/json"
-	"strings"
 	"sync"
 	"syscall/js"
 	"time"
@@ -92,16 +91,6 @@ func setupEventListeners() {
 			return nil
 		}))
 	}
-
-	// Input uppercase handler
-	input := lib.GetElement("join-code-input")
-	if !input.IsNull() {
-		input.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			val := input.Get("value").String()
-			input.Set("value", strings.ToUpper(val))
-			return nil
-		}))
-	}
 }
 
 // attachEventListener attaches a simple click event listener
@@ -154,6 +143,7 @@ func handleJoinGame(this js.Value, args []js.Value) interface{} {
 		return nil
 	}
 
+	// Join the game with the code
 	lib.SendMessage("join_game", map[string]interface{}{
 		"code": code,
 	})

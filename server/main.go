@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -131,6 +132,15 @@ func (s *Server) handleJoinGame(client *lib.Client, data lib.JoinGameData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Keep only first 5 characters (ASCII assumption)
+	if len(data.Code) > 5 {
+		data.Code = data.Code[:5]
+	}
+
+	// Uppercase
+	data.Code = strings.ToUpper(data.Code)
+
+	// Check if game exists
 	game, exists := s.gamesByCode[data.Code]
 	if !exists {
 		s.sendError(client, "Game not found")
