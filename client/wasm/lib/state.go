@@ -20,6 +20,12 @@ type Player struct {
 	Username string `json:"username"`
 }
 
+// LastMove represents the last move played
+type LastMove struct {
+	Col int
+	Row int
+}
+
 // State holds all game state (singleton pattern)
 type State struct {
 	mutex sync.RWMutex
@@ -34,6 +40,7 @@ type State struct {
 	ReplayRequested         bool
 	OpponentRequestedReplay bool
 	TimeRemaining           [2]int64 // milliseconds
+	LastMove                *LastMove
 }
 
 var instance *State
@@ -76,6 +83,7 @@ func (state *State) ResetBoard() {
 	state.mutex.Lock()
 	defer state.mutex.Unlock()
 	state.Board = [Rows][Cols]int{}
+	state.LastMove = nil
 }
 
 // ClearHover removes hover preview
@@ -223,4 +231,18 @@ func (state *State) GetTimeRemaining() [2]int64 {
 	state.mutex.RLock()
 	defer state.mutex.RUnlock()
 	return state.TimeRemaining
+}
+
+// SetLastMove updates the last move played
+func (state *State) SetLastMove(col, row int) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.LastMove = &LastMove{Col: col, Row: row}
+}
+
+// GetLastMove returns the last move played
+func (state *State) GetLastMove() *LastMove {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.LastMove
 }

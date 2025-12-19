@@ -423,6 +423,7 @@ func handleMove(data interface{}) {
 	state.SetBoard(move.Board)
 	state.SetCurrentTurn(move.NextTurn)
 	state.SetTimeRemaining(move.TimeRemaining)
+	state.SetLastMove(move.Column, move.Row)
 
 	lib.Draw()
 	updateGameStatus()
