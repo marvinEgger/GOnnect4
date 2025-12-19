@@ -200,6 +200,24 @@ func (g *Game) Play(playerIdx, col int) error {
 	return nil
 }
 
+// Forfeit handles a player forfeiting the game
+func (g *Game) Forfeit(loserIdx int) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.Status != StatusPlaying {
+		return
+	}
+
+	if g.Timer != nil {
+		g.Timer.Stop()
+	}
+
+	opponentIdx := 1 - loserIdx
+	g.Status = StatusFinished
+	g.Result = GameResult(opponentIdx + 1)
+}
+
 // RequestReplay marks a player's desire to replay
 func (g *Game) RequestReplay(playerIdx int) bool {
 	g.mu.Lock()
@@ -288,6 +306,20 @@ func (g *Game) GetPlayerIndex(id PlayerID) int {
 		}
 	}
 	return -1
+}
+
+// GetPlayers returns the players in the game safely
+func (g *Game) GetPlayers() [2]*Player {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.Players
+}
+
+// GetStatus returns the current game status
+func (g *Game) GetStatus() GameStatus {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.Status
 }
 
 // HasPlayer checks if a player is in this game

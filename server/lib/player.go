@@ -12,6 +12,11 @@ import (
 
 const tokenLength = 16
 
+// Sender interface abstracts the network layer
+type Sender interface {
+	Send(Message)
+}
+
 // PlayerID uniquely identifies a player session
 type PlayerID string
 
@@ -20,7 +25,7 @@ type Player struct {
 	sync.RWMutex
 	ID        PlayerID
 	Username  string
-	Connected bool
+	sender    Sender
 	Remaining time.Duration
 }
 
@@ -34,24 +39,31 @@ func NewPlayer(username string, initialClock time.Duration) *Player {
 
 	// return the new player
 	return &Player{
-
 		ID:        PlayerID(newToken(tokenLength)),
 		Username:  username,
-		Connected: true,
 		Remaining: initialClock,
 	}
 }
 
-// SetConnected safely sets the connection status
-func (p *Player) SetConnected(connected bool) {
+// SetSender sets the network sender for this player
+func (p *Player) SetSender(s Sender) {
 	p.Lock()
 	defer p.Unlock()
-	p.Connected = connected
+	p.sender = s
 }
 
-// IsConnected safely checks connection status
+// IsConnected checks if the player has an active sender
 func (p *Player) IsConnected() bool {
 	p.RLock()
 	defer p.RUnlock()
-	return p.Connected
+	return p.sender != nil
+}
+
+// Send sends a message to the player if connected
+func (p *Player) Send(msg Message) {
+	p.RLock()
+	defer p.RUnlock()
+	if p.sender != nil {
+		p.sender.Send(msg)
+	}
 }
