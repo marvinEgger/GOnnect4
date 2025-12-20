@@ -4,6 +4,9 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>GOnnect4 - Connect 4 in Go</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
@@ -12,6 +15,10 @@
             <div class="logo">
                 <img src="assets/logo/GOnnect4.png" alt="GOnnect4" id="main-logo">
                 <h1>GOnnect4</h1>
+            </div>
+            <div class="header-user-info d-none" id="header-user-info">
+                <span class="header-username" id="header-username"></span>
+                <button id="logout-btn-header" class="btn btn-small btn-danger">Logout</button>
             </div>
         </header>
 
@@ -30,42 +37,101 @@
 
             <!-- Lobby Screen -->
             <div id="lobby-screen" class="screen">
-                <div class="card">
-                    <div class="lobby-header">
-                        <h2 id="welcome-message">Welcome !</h2>
-                        <button id="logout-btn" class="btn btn-small" style="background: var(--danger); color: white;">Logout</button>
-                    </div>
+                <!-- Mode Selection -->
+                <div id="mode-selection" class="lobby-container">
+                    <div class="card mode-selection-card">
+                        <h2 class="card-title">Game modes</h2>
+                        <div class="mode-grid">
+                            <!-- Quick match -->
+                            <div class="mode-option">
+                                <div class="mode-icon"><img src="./assets/images/multiplayers.png" /></div>
+                                <h3>Quick match</h3>
+                                <p class="mode-description">Find an opponent online instantly</p>
+                                <div id="players-online" class="players-online">
+                                    <span class="pulse-dot"></span>
+                                    <span id="player-count">0 players online</span>
+                                </div>
+                                <button id="matchmaking-btn" class="btn btn-success btn-large">Find Match</button>
+                            </div>
 
-                    <!-- Create Game -->
-                    <div class="lobby-section">
-                        <button id="create-game-btn" class="btn btn-success btn-large">Create New Game</button>
-                    </div>
+                            <!-- Play with Friend -->
+                            <div class="mode-option">
+                                <div class="mode-icon"><img src="./assets/images/friends.png" /></div>
+                                <h3>Play with a friend</h3>
+                                <p class="mode-description">Host a private match or join with a code</p>
+                                <button id="friend-mode-btn" class="btn btn-primary btn-large">Invite or Join</button>
+                            </div>
 
-                    <div class="separator">OR</div>
-
-                    <!-- Join Game -->
-                    <div class="lobby-section">
-                        <label>Join with code:</label>
-                        <div class="input-group">
-                            <input type="text" id="join-code-input" placeholder="XXXXX" maxlength="5" style="text-transform: uppercase">
-                            <button id="join-game-btn" class="btn btn-primary">Join</button>
+                            <!-- Play vs Bot -->
+                            <div class="mode-option mode-disabled">
+                                <div class="mode-icon"><img src="./assets/images/bot.png" /></div>
+                                <h3>Play with an AI</h3>
+                                <p class="mode-description">Practice against an AI opponent</p>
+                                <button class="btn btn-large" disabled>Coming Soon</button>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Waiting for opponent -->
-                    <div id="waiting-area" class="waiting-area" style="display: none;">
-                        <h3>Waiting for opponent...</h3>
-                        <div class="code-display">
-                            <label>Game Code:</label>
-                            <div class="code-value" id="game-code-display">-----</div>
-                        </div>
-                        <button id="copy-code-btn" class="btn btn-warning">Copy Code</button>
-                        <p class="share-text">Share this code with your friend</p>
-                        <div class="spinner"></div>
-                    </div>
-
-                    <div id="lobby-message" class="message"></div>
                 </div>
+
+                <!-- Friend Mode Panel -->
+                <div id="friend-mode-panel" class="lobby-container d-none">
+                    <div class="card">
+                        <div class="card-header">
+                            <button id="back-to-modes-btn" class="btn btn-small btn-back">← Back</button>
+                            <h2 class="card-title">Play with Friend</h2>
+                        </div>
+
+                        <!-- Create Game -->
+                        <div class="lobby-section">
+                            <button id="create-game-btn" class="btn btn-success btn-large">Create New Game</button>
+                        </div>
+
+                        <div class="separator">OR</div>
+
+                        <!-- Join Game -->
+                        <div class="lobby-section">
+                            <label>Join with code</label>
+                            <div class="input-group">
+                                <input type="text" id="join-code-input" class="input-uppercase" placeholder="XXXXX" maxlength="5">
+                                <button id="join-game-btn" class="btn btn-primary">Join</button>
+                            </div>
+                        </div>
+
+                        <!-- Waiting for opponent -->
+                        <div id="waiting-area" class="waiting-area d-none">
+                            <h3>Waiting for opponent...</h3>
+                            <div class="code-display">
+                                <label>Game Code:</label>
+                                <div class="code-value" id="game-code-display">-----</div>
+                            </div>
+                            <button id="copy-code-btn" class="btn btn-warning">Copy Code</button>
+                            <p class="share-text">Share this code with your friend</p>
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Matchmaking Panel -->
+                <div id="matchmaking-panel" class="lobby-container d-none">
+                    <div class="card">
+                        <div class="card-header">
+                            <button id="back-to-modes-matchmaking-btn" class="btn btn-small btn-back">← Back</button>
+                            <h2 class="card-title">Quick Match</h2>
+                        </div>
+
+                        <div id="matchmaking-searching" class="waiting-area">
+                            <h3>Searching for opponent...</h3>
+                            <div class="matchmaking-info">
+                                <span class="pulse-dot large"></span>
+                                <p class="share-text" id="matchmaking-status">Looking for available players...</p>
+                            </div>
+                            <div class="spinner"></div>
+                            <button id="cancel-matchmaking-btn" class="btn btn-warning">Cancel Search</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lobby-message" class="message"></div>
             </div>
 
             <!-- Game Screen -->
@@ -87,7 +153,7 @@
                             <span id="game-code-info">-----</span>
                             <button id="copy-code-game-btn" class="btn btn-small btn-warning">Copy</button>
                         </div>
-                        <div id="replay-area" class="replay-area" style="display: none;">
+                        <div id="replay-area" class="replay-area d-none">
                             <button id="replay-btn" class="btn btn-primary">Request Replay</button>
                             <button id="back-to-lobby-btn" class="btn btn-primary">Back to Lobby</button>
                         </div>
@@ -110,11 +176,11 @@
 
                 <!-- Custom Game Actions -->
                 <div id="game-actions" class="game-actions">
-                    <button id="forfeit-btn" class="btn btn-small" style="background: var(--danger); color: white;">Forfeit</button>
+                    <button id="forfeit-btn" class="btn btn-small btn-danger">Forfeit</button>
                 </div>
 
                 <!-- Waiting Actions -->
-                <div id="waiting-actions" class="game-actions" style="display: none;">
+                <div id="waiting-actions" class="game-actions d-none">
                     <button id="cancel-game-btn" class="btn btn-small btn-primary">Back to Lobby</button>
                 </div>
             </div>
@@ -123,10 +189,12 @@
         <!-- Footer -->
         <footer>
             <div class="footer-left">
-                <img src="assets/logo/go.png" alt="Go" class="footer-logo">
+                <a class="img-link" href="https://go.dev/" target="_blank">
+                    <img src="assets/logo/go.png" alt="Go" class="footer-logo">
+                </a>
             </div>
             <div class="footer-right">
-                Developed by Astrit&nbsp;Aslani &&nbsp;Marvin&nbsp;Egger
+                Developed by <a href="https://github.com/AstritA" target="_blank">Astrit&nbsp;Aslani</a> &&nbsp;<a href="https://github.com/marvinEgger" target="_blank">Marvin&nbsp;Egger</a>
             </div>
         </footer>
 
