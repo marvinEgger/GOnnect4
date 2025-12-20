@@ -1,16 +1,29 @@
-/* Base reset */
+/* ============================================
+   GONNECT4 - STYLES
+   CSS following Go brand guidelines
+   ============================================ */
+
+/* ============================================
+   1. RESET & BASE
+   ============================================ */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* Theme */
+/* ============================================
+   2. CSS VARIABLES (THEME)
+   ============================================ */
+
 :root {
+    /* Background Colors */
     --bg-dark: #18222C;
     --bg-card: #253443;
     --bg-hover: #414153;
 
+    /* Brand Colors */
     --primary: #00add8;
     --primary-hover: #5dc9e2;
     --success: #2FBF9A;
@@ -20,73 +33,152 @@
     --danger: #E06C75;
     --danger-hover: #F08C94;
 
+    /* Text Colors */
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
 
+    /* Border Colors */
     --border: #475569;
     --border-active: #5dc9e2;
 
+    /* Token Colors */
     --red-token: #ce3262;
     --yellow-token: #fddd00;
+
+    /* Spacing System */
+    --space-xs: 0.5rem;
+    --space-sm: 1rem;
+    --space-md: 1.5rem;
+    --space-lg: 2rem;
+    --space-xl: 2.5rem;
 }
 
-/* Layout */
+/* ============================================
+   3. TYPOGRAPHY
+   Using Work Sans from Go brand guidelines
+   ============================================ */
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: var(--bg-dark);
+    font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
     color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+    color: var(--primary-hover);
+    text-decoration: none;
+    transition: all ease-in-out .3s;
+}
+
+a:hover {
+    color: var(--success);
+}
+
+h1 {
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 700; /* Bold for headlines */
+    font-size: 2.5rem;
+    line-height: 1.2;
+    margin-bottom: var(--space-sm);
+}
+
+h2 {
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 600; /* SemiBold for subheads */
+    font-size: 1.75rem;
+    line-height: 1.3;
+    margin-bottom: var(--space-md);
+}
+
+h3 {
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 600;
+    font-size: 1.35rem;
+    line-height: 1.4;
+    margin-bottom: var(--space-sm);
+}
+
+/* ============================================
+   4. LAYOUT
+   ============================================ */
+
+body {
+    background: var(--bg-dark);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
+/* Header */
 header {
     background: var(--bg-card);
-    padding: 5px 2rem;
+    padding: .05rem var(--space-lg);
     border-bottom: 2px solid var(--border);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 header .logo {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-sm);
 }
 
 header .logo img {
-    height: 68px;
+    height: 110px;
     width: auto;
 }
 
 header .logo h1 {
-    font-size: 1.75rem;
-    font-weight: 700;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 2.35rem;
+    font-weight: 600;
     margin: 0;
+}
+
+.header-user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.header-username {
+    font-family: 'Work Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
     color: var(--text-primary);
 }
 
+/* Main */
 main {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: var(--space-sm);
     overflow-y: auto;
     min-height: 0;
     width: 100%;
 }
 
+/* Footer */
 footer {
     background: var(--bg-card);
-    padding: 8px 2rem;
+    padding: 1rem var(--space-lg);
     border-top: 2px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
-    gap: 1.5rem;
+    gap: var(--space-md);
 }
 
 footer .footer-left {
@@ -95,76 +187,146 @@ footer .footer-left {
 }
 
 footer .footer-logo {
-    height: 22px;
+    height: 36px;
 }
 
 footer .footer-right {
+    font-family: 'Work Sans', sans-serif;
     color: var(--text-secondary);
-    font-size: 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
 }
 
-/* Screens */
+footer a.img-link {
+    display: flex;
+}
+
+footer a:hover.img-link {
+    transform: scale(1.05);
+    margin-left: 3px;
+}
+
+/* ============================================
+   4.5. UTILITY CLASSES (Display)
+   ============================================ */
+
+.d-none {
+    display: none !important;
+}
+
+.d-block {
+    display: block !important;
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.d-inline {
+    display: inline !important;
+}
+
+.d-inline-block {
+    display: inline-block !important;
+}
+
+/* ============================================
+   5. COMPONENTS - SCREENS
+   ============================================ */
+
 .screen {
     display: none;
     width: 100%;
-    max-width: 900px;
+    max-width: 1400px;
 }
 
 .screen.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
 }
 
-/* Cards */
+/* ============================================
+   6. COMPONENTS - CARDS
+   ============================================ */
+
 .card {
     background: var(--bg-card);
     border-radius: 12px;
-    padding: 2.5rem;
+    padding: var(--space-lg);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--border);
 }
 
 .card h1 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
     text-align: center;
 }
 
 .card h2 {
-    font-size: 1.75rem;
-    margin-bottom: 1.5rem;
     text-align: center;
 }
 
-/* Lobby header */
-.lobby-header {
+/* User Info Card */
+.user-info-card {
+    padding: 1.25rem var(--space-lg);
+}
+
+.user-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
 }
 
-.lobby-header h2 {
-    margin-bottom: 0;
+.user-greeting h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+/* Card Header */
+.card-header {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.card-title {
+    font-size: 2rem;
+    margin: 0;
+    text-align: center;
+}
+
+.card-header .btn-back {
+    position: absolute;
+    left: 0;
 }
 
 .subtitle {
     color: var(--text-secondary);
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-lg);
     font-size: 1.125rem;
+    font-weight: 400;
 }
+
+/* ============================================
+   7. COMPONENTS - FORMS
+   ============================================ */
 
 /* Inputs */
 input[type="text"] {
     width: 100%;
-    padding: 0.875rem 1rem;
+    padding: 0.875rem var(--space-sm);
     font-size: 1rem;
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 400;
     border: 2px solid var(--border);
     border-radius: 8px;
     background: var(--bg-dark);
     color: var(--text-primary);
-    margin-bottom: 1rem;
-    transition: all 0.2s;
+    margin-bottom: var(--space-sm);
+    transition: all 0.2s ease;
 }
 
 input[type="text"]:focus {
@@ -177,15 +339,30 @@ input[type="text"]::placeholder {
     color: var(--text-muted);
 }
 
+.input-uppercase {
+    text-transform: uppercase;
+}
+
+.input-group {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.input-group input {
+    flex: 1;
+    margin-bottom: 0;
+}
+
 /* Buttons */
 .btn {
     padding: 0.875rem 1.75rem;
     font-size: 1rem;
+    font-family: 'Work Sans', sans-serif;
     font-weight: 600;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -198,12 +375,18 @@ input[type="text"]::placeholder {
     transform: translateY(0);
 }
 
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Button Variants */
 .btn-primary {
     background: var(--primary);
     color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     background: var(--primary-hover);
 }
 
@@ -212,7 +395,7 @@ input[type="text"]::placeholder {
     color: white;
 }
 
-.btn-success:hover {
+.btn-success:hover:not(:disabled) {
     background: var(--success-hover);
 }
 
@@ -221,10 +404,31 @@ input[type="text"]::placeholder {
     color: var(--bg-dark);
 }
 
-.btn-warning:hover {
+.btn-warning:hover:not(:disabled) {
     background: var(--warning-hover);
 }
 
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--danger-hover);
+}
+
+.btn-back {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn-back:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-active);
+}
+
+/* Button Sizes */
 .btn-large {
     width: 100%;
     padding: 1.25rem;
@@ -232,17 +436,41 @@ input[type="text"]::placeholder {
 }
 
 .btn-small {
-    padding: 0.5rem 1rem;
+    padding: var(--space-xs) var(--space-sm);
     font-size: 0.875rem;
 }
 
-/* Messages */
+#username-input {
+    margin: var(--space-lg) 0;
+}
+
+#connect-btn {
+    display: block;
+    margin-left: auto;
+    margin-top: var(--space-sm);
+}
+
+/* ============================================
+   8. COMPONENTS - MESSAGES
+   ============================================ */
+
 .message {
-    margin-top: 1rem;
-    padding: 0.75rem;
+    margin-top: var(--space-sm);
+    margin-bottom: calc(var(--space-sm) / 2);
+    padding: 0;
     border-radius: 6px;
     text-align: center;
     font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.message:empty {
+    display: none;
+}
+
+.message.error,
+.message.success {
+    padding: 0.75rem;
 }
 
 .message.error {
@@ -257,21 +485,113 @@ input[type="text"]::placeholder {
     border: 1px solid var(--success);
 }
 
-/* Lobby */
+/* ============================================
+   9. COMPONENTS - LOBBY & MODES
+   ============================================ */
+
+.lobby-container {
+    width: 100%;
+}
+
 .lobby-section {
-    margin: 1.5rem 0;
+    margin: var(--space-md) 0;
 }
 
 .lobby-section label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-xs);
     color: var(--text-secondary);
     font-weight: 500;
 }
 
+/* Mode Selection */
+.mode-selection-card {
+    padding: var(--space-xl);
+}
+
+.mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-lg);
+    margin-top: var(--space-lg);
+}
+
+.mode-option {
+    background: var(--bg-dark);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.mode-option:not(.mode-disabled):hover {
+    border-color: var(--border-active);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.mode-icon {
+    font-size: 3rem;
+    margin-bottom: var(--space-xs);
+}
+
+.mode-icon img {
+    height: 100px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.mode-option h3 {
+    margin: 0;
+}
+
+.mode-description {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    flex: 1;
+    font-weight: 400;
+}
+
+.mode-option.mode-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Players Online Indicator */
+.players-online {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs);
+    margin: var(--space-xs) 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: pulse-animation 2s infinite;
+}
+
+.pulse-dot.large {
+    width: 12px;
+    height: 12px;
+}
+
+/* Separator */
 .separator {
     text-align: center;
-    margin: 2rem 0;
+    margin: var(--space-lg) 0;
     color: var(--text-muted);
     font-weight: 600;
     position: relative;
@@ -295,20 +615,10 @@ input[type="text"]::placeholder {
     right: 0;
 }
 
-.input-group {
-    display: flex;
-    gap: 0.75rem;
-}
-
-.input-group input {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-/* Waiting area */
+/* Waiting Area */
 .waiting-area {
-    margin-top: 2rem;
-    padding: 2rem;
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
     background: var(--bg-dark);
     border-radius: 8px;
     border: 2px solid var(--border-active);
@@ -317,24 +627,24 @@ input[type="text"]::placeholder {
 
 .waiting-area h3 {
     color: var(--warning);
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-md);
     font-size: 1.5rem;
 }
 
 .code-display {
-    margin: 1.5rem 0;
+    margin: var(--space-md) 0;
 }
 
 .code-display label {
     display: block;
     color: var(--text-secondary);
     font-size: 0.875rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-xs);
 }
 
 .code-value {
     font-size: 2.5rem;
-    font-weight: bold;
+    font-weight: 700;
     color: var(--success);
     letter-spacing: 0.25rem;
     font-family: 'Courier New', monospace;
@@ -342,12 +652,22 @@ input[type="text"]::placeholder {
 
 .share-text {
     color: var(--text-secondary);
-    margin-top: 1rem;
+    margin-top: var(--space-sm);
     font-size: 0.875rem;
 }
 
+/* Matchmaking Info */
+.matchmaking-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    margin: var(--space-sm) 0;
+}
+
+/* Spinner */
 .spinner {
-    margin: 1.5rem auto;
+    margin: var(--space-md) auto;
     width: 40px;
     height: 40px;
     border: 4px solid var(--border);
@@ -356,49 +676,47 @@ input[type="text"]::placeholder {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
+/* ============================================
+   10. COMPONENTS - GAME SCREEN
+   ============================================ */
 
-/* Game screen layout */
 #game-screen {
     position: relative;
     width: 100%;
-    max-width: 1200px;
+    max-width: 1600px;
     display: none;
     flex-direction: column;
     align-items: center;
-    padding: 1rem;
+    padding: var(--space-sm);
 }
 
 #game-screen.active {
     display: flex;
 }
 
-/* Game header */
+/* Game Header */
 .game-header {
     width: 100%;
-    max-width: 1000px;
+    max-width: 1400px;
     display: flex;
     justify-content: space-between;
     align-items: stretch;
-    gap: 2rem;
-    margin: 0 auto 1rem;
+    gap: var(--space-lg);
+    margin: 0 auto var(--space-sm);
 }
 
+/* Player Cards */
 .player-card {
     width: 180px;
     background: var(--bg-card);
-    padding: 1rem;
+    padding: var(--space-sm);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
     border: 3px solid transparent;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
     text-align: center;
 }
 
@@ -411,12 +729,10 @@ input[type="text"]::placeholder {
 }
 
 .player-card.player-0.active {
-    border-color: var(--red-token);
     box-shadow: 0 0 20px rgba(220, 38, 38, 0.85);
 }
 
 .player-card.player-1.active {
-    border-color: var(--yellow-token);
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.85);
 }
 
@@ -432,7 +748,7 @@ input[type="text"]::placeholder {
 .player-name {
     font-size: 1rem;
     font-weight: 600;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-xs);
 }
 
 .player-badge {
@@ -442,6 +758,7 @@ input[type="text"]::placeholder {
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
     display: inline-block;
+    font-weight: 500;
 }
 
 .player-timer {
@@ -449,11 +766,11 @@ input[type="text"]::placeholder {
     font-weight: 700;
     font-family: 'Courier New', monospace;
     margin-top: 0.75rem;
-    padding: 0.5rem;
+    padding: var(--space-xs);
     background: var(--bg-dark);
     border-radius: 6px;
     color: var(--text-primary);
-    transition: all 0.3s;
+    transition: all 0.3s ease;
 }
 
 .player-timer.warning {
@@ -466,26 +783,25 @@ input[type="text"]::placeholder {
     animation: pulse 0.5s infinite;
 }
 
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.6;
-    }
-}
-
-/* Game status and actions */
+/* Game Info Center */
 .game-info-center {
     flex: 1;
     background: var(--bg-card);
-    padding: 1rem;
+    padding: var(--space-sm);
     border-radius: 12px;
     border: 1px solid var(--border);
     text-align: center;
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+.status-message {
+    font-size: 1.125rem;
+    font-weight: 600;
+    padding: 0.75rem;
+    background: var(--bg-dark);
+    border-radius: 8px;
 }
 
 .code-area {
@@ -499,37 +815,33 @@ input[type="text"]::placeholder {
 .code-area span {
     font-family: 'Courier New', monospace;
     font-size: 1.125rem;
-    font-weight: bold;
+    font-weight: 700;
     color: var(--success);
-}
-
-.game-actions {
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: end;
-    gap: 0.5rem;
 }
 
 .replay-area {
     margin-top: 0.75rem;
     display: flex;
     justify-content: center;
-    gap: 0.5rem;
+    gap: var(--space-xs);
 }
 
-.status-message {
-    font-size: 1.125rem;
-    font-weight: 600;
-    padding: 0.75rem;
-    background: var(--bg-dark);
-    border-radius: 8px;
+/* Game Actions */
+.game-actions {
+    position: absolute;
+    right: var(--space-sm);
+    bottom: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: var(--space-xs);
 }
 
-/* Board */
+/* ============================================
+   11. COMPONENTS - BOARD
+   ============================================ */
+
 .board-container {
     display: flex;
     flex-direction: column;
@@ -550,10 +862,44 @@ input[type="text"]::placeholder {
     aspect-ratio: 7 / 6 !important;
 }
 
+/* ============================================
+   12. ANIMATIONS
+   ============================================ */
+
+@keyframes pulse-animation {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   13. MEDIA QUERIES (RESPONSIVE)
+   ============================================ */
+
 /* Tablet */
 @media (max-width: 1024px) {
     .card {
-        padding: 2rem;
+        padding: var(--space-lg);
     }
 
     .card h1 {
@@ -566,7 +912,7 @@ input[type="text"]::placeholder {
 
     .game-header {
         max-width: 900px;
-        gap: 1.5rem;
+        gap: var(--space-md);
     }
 
     .player-card {
@@ -580,16 +926,24 @@ input[type="text"]::placeholder {
         font-size: 0.95rem;
     }
 
+    header {
+        padding: 0.75rem var(--space-md);
+    }
+
     header .logo img {
-        height: 48px;
+        height: 60px;
     }
 
     header .logo h1 {
-        font-size: 1.4rem;
+        font-size: 1.6rem;
+    }
+
+    .header-username {
+        font-size: 0.9rem;
     }
 
     .card {
-        padding: 1.5rem;
+        padding: var(--space-md);
     }
 
     .card h1 {
@@ -600,19 +954,36 @@ input[type="text"]::placeholder {
         font-size: 1.4rem;
     }
 
+    .mode-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+
+    .mode-option h3 {
+        font-size: 1.2rem;
+    }
+
+    .mode-description {
+        font-size: 0.9rem;
+    }
+
+    .mode-icon {
+        font-size: 2.5rem;
+    }
+
     main {
-        padding: .5rem 1rem;
+        padding: var(--space-xs) var(--space-sm);
     }
 
     #game-screen {
-        padding: .5rem 1rem 0 1rem;
+        padding: var(--space-xs) var(--space-sm) 0 var(--space-sm);
         max-width: 100%;
     }
 
     .game-header {
         flex-wrap: wrap;
         justify-content: center;
-        gap: 1rem;
+        gap: var(--space-sm);
         max-width: 100%;
     }
 
@@ -620,7 +991,7 @@ input[type="text"]::placeholder {
         flex: 1 1 45%;
         width: auto;
         padding: 0.6rem;
-        gap: 0.5rem;
+        gap: var(--space-xs);
     }
 
     .player-token {
@@ -658,10 +1029,10 @@ input[type="text"]::placeholder {
     }
 }
 
-/* Small mobile width */
+/* Small Mobile */
 @media (max-width: 825px) {
     main {
-        align-items: start;
+        align-items: flex-start;
     }
 
     .game-actions {
@@ -670,22 +1041,42 @@ input[type="text"]::placeholder {
     }
 
     .game-actions button {
-        margin-bottom: 1rem;
+        margin-bottom: var(--space-sm);
     }
 }
 
-/* Very small mobile */
+/* Very Small Mobile */
 @media (max-width: 492px) {
     body {
         font-size: 0.9rem;
     }
 
     header {
-        padding: 5px 1.5rem;
+        padding: 0.5rem var(--space-md);
+    }
+
+    header .logo img {
+        height: 50px;
+    }
+
+    header .logo h1 {
+        font-size: 1.3rem;
+    }
+
+    .header-username {
+        font-size: 0.8rem;
     }
 
     footer {
-        padding: 8px 1.5rem;
+        padding: 0.75rem var(--space-md);
+    }
+
+    footer .footer-logo {
+        height: 28px;
+    }
+
+    footer .footer-right {
+        font-size: 0.8rem;
     }
 
     .card {
@@ -698,7 +1089,7 @@ input[type="text"]::placeholder {
 
     .subtitle {
         font-size: 1rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: var(--space-md);
     }
 
     .player-name {
@@ -722,10 +1113,10 @@ input[type="text"]::placeholder {
     }
 }
 
-/* Short height */
+/* Short Height Screens */
 @media (max-height: 850px) {
     main {
-        align-items: start;
+        align-items: flex-start;
     }
 
     #game-board {
