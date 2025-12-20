@@ -111,6 +111,9 @@ func (game *Game) AddPlayer(player *Player) bool {
 
 // start begins the game when both players are ready
 func (g *Game) start() {
+	// Randomize who starts
+	g.CurrentTurn = randomFirstPlayer()
+
 	g.Status = StatusPlaying
 	g.TurnStartedAt = time.Now()
 	g.LastPlayedAt = time.Now()
@@ -356,6 +359,15 @@ func randomCode(length int) string {
 	}
 
 	return string(bytes)
+}
+
+// randomFirstPlayer returns 0 or 1 randomly
+func randomFirstPlayer() int {
+	var b [1]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic("failed to generate random player: " + err.Error())
+	}
+	return int(b[0] % 2)
 }
 
 // newToken generates a random hex token
