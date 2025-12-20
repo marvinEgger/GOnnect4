@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -28,17 +29,48 @@ const (
 
 // Server manages all games and player connections
 type Server struct {
-	mu          sync.RWMutex
-	gamesByCode map[string]*lib.Game
-	lobby       map[lib.PlayerID]*lib.Player
+	mu               sync.RWMutex
+	gamesByCode      map[string]*lib.Game
+	lobby            map[lib.PlayerID]*lib.Player
+	matchmakingQueue []lib.PlayerID // queue of players waiting for matchmaking
+
+	// Background cleanup
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+
+	// Queue update throttling
+	queueUpdatePending bool
+	queueUpdateTimer   *time.Timer
 }
 
 // NewServer creates a new game server
 func NewServer() *Server {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Server{
-		gamesByCode: make(map[string]*lib.Game),
-		lobby:       make(map[lib.PlayerID]*lib.Player),
+		gamesByCode:      make(map[string]*lib.Game),
+		lobby:            make(map[lib.PlayerID]*lib.Player),
+		matchmakingQueue: make([]lib.PlayerID, 0),
+		ctx:              ctx,
+		cancelFunc:       cancel,
 	}
+}
+
+// StartPeriodicCleanup starts a background goroutine that cleans up stale games every 30 seconds
+func (s *Server) StartPeriodicCleanup() {
+	ticker := time.NewTicker(30 * time.Second)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.mu.Lock()
+				s.cleanupStaleGames()
+				s.mu.Unlock()
+			case <-s.ctx.Done():
+				return
+			}
+		}
+	}()
 }
 
 // sendError sends an error message to a client
@@ -47,6 +79,26 @@ func (s *Server) sendError(client *lib.Client, message string) {
 		Type: lib.MsgError,
 		Data: lib.ErrorData{Message: message},
 	})
+}
+
+// findGameForClient finds and caches the game for a client
+func (s *Server) findGameForClient(client *lib.Client) *lib.Game {
+	// Try cached game code first
+	if client.GameCode != "" {
+		if game, exists := s.gamesByCode[client.GameCode]; exists {
+			return game
+		}
+	}
+
+	// Search all games for this player
+	for code, game := range s.gamesByCode {
+		if game.HasPlayer(client.PlayerID) {
+			client.GameCode = code // Cache it
+			return game
+		}
+	}
+
+	return nil
 }
 
 // handleLogin processes login/reconnection
@@ -189,8 +241,8 @@ func (s *Server) handlePlay(client *lib.Client, data lib.PlayData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	game, exists := s.gamesByCode[client.GameCode]
-	if !exists {
+	game := s.findGameForClient(client)
+	if game == nil {
 		s.sendError(client, "Game not found")
 		return
 	}
@@ -238,8 +290,8 @@ func (s *Server) handleReplay(client *lib.Client) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	game, exists := s.gamesByCode[client.GameCode]
-	if !exists {
+	game := s.findGameForClient(client)
+	if game == nil {
 		s.sendError(client, "Game not found")
 		return
 	}
@@ -275,8 +327,8 @@ func (s *Server) handleForfeit(client *lib.Client) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	game, exists := s.gamesByCode[client.GameCode]
-	if !exists {
+	game := s.findGameForClient(client)
+	if game == nil {
 		s.sendError(client, "Game not found")
 		return
 	}
@@ -340,6 +392,147 @@ func (s *Server) handleLeaveLobby(client *lib.Client) {
 	}
 }
 
+// handleJoinMatchmaking adds player to matchmaking queue
+func (s *Server) handleJoinMatchmaking(client *lib.Client) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	player := s.lobby[client.PlayerID]
+	if player == nil {
+		s.sendError(client, "Player not found")
+		return
+	}
+
+	// Check if already in queue
+	for _, pid := range s.matchmakingQueue {
+		if pid == client.PlayerID {
+			return // Already in queue
+		}
+	}
+
+	// Add to queue
+	s.matchmakingQueue = append(s.matchmakingQueue, client.PlayerID)
+
+	// Send searching confirmation
+	player.Send(lib.Message{
+		Type: lib.MsgMatchmakingSearching,
+		Data: nil,
+	})
+
+	// Broadcast queue update to all players in lobby
+	s.broadcastQueueUpdate()
+
+	// Try to match players immediately if we have enough
+	if len(s.matchmakingQueue) >= 2 {
+		s.tryMatchPlayers()
+	}
+}
+
+// handleLeaveMatchmaking removes player from matchmaking queue
+func (s *Server) handleLeaveMatchmaking(client *lib.Client) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Remove from queue
+	for i, pid := range s.matchmakingQueue {
+		if pid == client.PlayerID {
+			s.matchmakingQueue = append(s.matchmakingQueue[:i], s.matchmakingQueue[i+1:]...)
+			break
+		}
+	}
+
+	// Broadcast queue update
+	s.broadcastQueueUpdate()
+}
+
+// tryMatchPlayers attempts to match two players in the queue
+func (s *Server) tryMatchPlayers() {
+	if len(s.matchmakingQueue) < 2 {
+		return
+	}
+
+	// Take first two players
+	player1ID := s.matchmakingQueue[0]
+	player2ID := s.matchmakingQueue[1]
+
+	// Remove from queue
+	s.matchmakingQueue = s.matchmakingQueue[2:]
+
+	player1 := s.lobby[player1ID]
+	player2 := s.lobby[player2ID]
+
+	// Verify both players still exist and are connected
+	if player1 == nil || player2 == nil || !player1.IsConnected() || !player2.IsConnected() {
+		// If one is missing, put the other back in queue
+		if player1 != nil && player1.IsConnected() {
+			s.matchmakingQueue = append([]lib.PlayerID{player1ID}, s.matchmakingQueue...)
+		}
+		if player2 != nil && player2.IsConnected() {
+			s.matchmakingQueue = append([]lib.PlayerID{player2ID}, s.matchmakingQueue...)
+		}
+		s.broadcastQueueUpdate()
+		return
+	}
+
+	// Create game
+	game := lib.NewGame(initialClockDuration)
+	game.TimerCallback = s.handleTimeout
+	game.AddPlayer(player1)
+	game.AddPlayer(player2)
+	s.gamesByCode[game.Code] = game
+
+	// Broadcast queue update after matching
+	s.broadcastQueueUpdate()
+
+	// Notify both players
+	s.broadcastToGame(game, lib.Message{
+		Type: lib.MsgGameStart,
+		Data: lib.GameStartData{
+			Code:          game.Code,
+			CurrentTurn:   game.CurrentTurn,
+			Players:       s.getPlayerInfos(game),
+			TimeRemaining: s.getTimeRemaining(game),
+		},
+	})
+}
+
+// broadcastQueueUpdate sends queue size to all connected players
+func (s *Server) broadcastQueueUpdate() {
+	// Throttle queue updates to max once per 500ms to reduce load
+	if s.queueUpdatePending {
+		return // Already scheduled
+	}
+
+	s.queueUpdatePending = true
+
+	// Stop existing timer if any
+	if s.queueUpdateTimer != nil {
+		s.queueUpdateTimer.Stop()
+	}
+
+	// Schedule the actual broadcast after 500ms
+	s.queueUpdateTimer = time.AfterFunc(500*time.Millisecond, func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
+		s.queueUpdatePending = false
+		queueSize := len(s.matchmakingQueue)
+		msg := lib.Message{
+			Type: lib.MsgQueueUpdate,
+			Data: lib.QueueUpdateData{
+				PlayersInQueue: queueSize,
+			},
+		}
+
+		// Send to all connected players in lobby
+		for _, player := range s.lobby {
+			if player != nil && player.IsConnected() {
+				player.Send(msg)
+			}
+		}
+	})
+}
+
 // sendGameState sends current game state to a player
 func (s *Server) sendGameState(player *lib.Player, game *lib.Game) {
 	player.Send(lib.Message{
@@ -396,21 +589,23 @@ func (s *Server) handleTimeout(gameCode string, loserIdx int) {
 	defer s.mu.Unlock()
 
 	game, exists := s.gamesByCode[gameCode]
-	if !exists || game.GetStatus() != lib.StatusPlaying {
+	if !exists {
 		return
 	}
 
-	opponentIdx := 1 - loserIdx
-	game.Status = lib.StatusFinished
-	game.Result = lib.GameResult(opponentIdx + 1)
+	// Use thread-safe Forfeit method to avoid race conditions
+	game.Forfeit(loserIdx)
 
-	s.broadcastToGame(game, lib.Message{
-		Type: lib.MsgGameOver,
-		Data: lib.GameOverData{
-			Result: game.Result,
-			Board:  game.Board.ToArray(),
-		},
-	})
+	// Broadcast game over only if forfeit was successful
+	if game.GetStatus() == lib.StatusFinished {
+		s.broadcastToGame(game, lib.Message{
+			Type: lib.MsgGameOver,
+			Data: lib.GameOverData{
+				Result: game.Result,
+				Board:  game.Board.ToArray(),
+			},
+		})
+	}
 }
 
 // broadcastToGame sends a message to all players in a game
@@ -499,6 +694,21 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				// A more robust way would be to have an ID on the sender, but for now:
 				player.SetSender(nil)
 			}
+
+			// Remove from matchmaking queue if present
+			wasInQueue := false
+			for i, pid := range s.matchmakingQueue {
+				if pid == client.PlayerID {
+					s.matchmakingQueue = append(s.matchmakingQueue[:i], s.matchmakingQueue[i+1:]...)
+					wasInQueue = true
+					break
+				}
+			}
+
+			// Broadcast queue update if player was removed
+			if wasInQueue {
+				s.broadcastQueueUpdate()
+			}
 		}
 		s.cleanupStaleGames()
 		s.mu.Unlock()
@@ -549,6 +759,12 @@ func (s *Server) handleMessage(client *lib.Client, msg lib.Message) {
 
 	case lib.MsgLeaveLobby:
 		s.handleLeaveLobby(client)
+
+	case lib.MsgJoinMatchmaking:
+		s.handleJoinMatchmaking(client)
+
+	case lib.MsgLeaveMatchmaking:
+		s.handleLeaveMatchmaking(client)
 	}
 }
 
@@ -563,6 +779,7 @@ func mapToStruct(in interface{}, out interface{}) error {
 
 func main() {
 	server := NewServer()
+	server.StartPeriodicCleanup()
 
 	http.HandleFunc("/ws", server.handleWebSocket)
 	http.Handle("/", http.FileServer(http.Dir(webFolder)))
