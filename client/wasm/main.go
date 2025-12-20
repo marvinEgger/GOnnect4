@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 	"syscall/js"
 	"time"
@@ -61,12 +62,21 @@ func setupEventListeners() {
 	attachEventListener("connect-btn", "click", handleConnect)
 	attachKeyPressListener("username-input", handleConnect)
 
-	// Lobby
+	// Lobby - Mode Selection
+	attachEventListener("friend-mode-btn", "click", handleFriendMode)
+	attachEventListener("matchmaking-btn", "click", handleMatchmakingMode)
+	attachEventListener("back-to-modes-btn", "click", handleBackToModes)
+	attachEventListener("back-to-modes-matchmaking-btn", "click", handleBackToModes)
+	attachEventListener("logout-btn-header", "click", handleLogout)
+
+	// Friend Mode
 	attachEventListener("create-game-btn", "click", handleCreateGame)
 	attachEventListener("join-game-btn", "click", handleJoinGame)
 	attachKeyPressListener("join-code-input", handleJoinGame)
 	attachEventListener("copy-code-btn", "click", handleCopyCode)
-	attachEventListener("logout-btn", "click", handleLogout)
+
+	// Matchmaking Mode
+	attachEventListener("cancel-matchmaking-btn", "click", handleCancelMatchmaking)
 
 	// Game
 	attachEventListener("copy-code-game-btn", "click", handleCopyGameCode)
@@ -159,6 +169,13 @@ func handleCopyCode(this js.Value, args []js.Value) any {
 		Call("writeText", code)
 
 	lib.ShowMessage("lobby-message", "Code copied!", "success")
+
+	// Hide message after 3 seconds
+	time.AfterFunc(3*time.Second, func() {
+		lib.SetText("lobby-message", "")
+		lib.GetElement("lobby-message").Set("className", "message")
+	})
+
 	return js.Undefined()
 }
 
@@ -218,7 +235,74 @@ func handleLogout(this js.Value, args []js.Value) interface{} {
 
 	// Clear input and go to login
 	lib.SetValue("username-input", "")
+	lib.Hide("header-user-info")
 	lib.ShowScreen("login")
+
+	return nil
+}
+
+// Mode Selection Handlers
+
+func handleFriendMode(this js.Value, args []js.Value) interface{} {
+	lib.Hide("mode-selection")
+	lib.Hide("matchmaking-panel")
+	lib.Show("friend-mode-panel")
+	return nil
+}
+
+func handleMatchmakingMode(this js.Value, args []js.Value) interface{} {
+	lib.Hide("mode-selection")
+	lib.Hide("friend-mode-panel")
+	lib.Show("matchmaking-panel")
+
+	// Show searching immediately
+	lib.Show("matchmaking-searching")
+
+	// Random delay between 500ms and 3000ms to mix up users
+	minDelay := 500
+	maxDelay := 3000
+	randomDelay := minDelay + int(js.Global().Get("Math").Call("random").Float()*float64(maxDelay-minDelay))
+
+	// Send join_matchmaking after random delay
+	js.Global().Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		lib.SendMessage("join_matchmaking", map[string]interface{}{})
+		return nil
+	}), randomDelay)
+
+	return nil
+}
+
+func handleBackToModes(this js.Value, args []js.Value) interface{} {
+	// Hide all panels
+	lib.Hide("friend-mode-panel")
+	lib.Hide("matchmaking-panel")
+	lib.Hide("waiting-area")
+	lib.Hide("matchmaking-searching")
+
+	// Cancel matchmaking if active
+	lib.SendMessage("leave_matchmaking", map[string]interface{}{})
+
+	// Clear lobby message
+	lib.SetText("lobby-message", "")
+	lib.GetElement("lobby-message").Set("className", "message")
+
+	// Show mode selection
+	lib.Show("mode-selection")
+
+	// Reset lobby state
+	resetLobby()
+
+	return nil
+}
+
+// Matchmaking Handlers
+
+func handleCancelMatchmaking(this js.Value, args []js.Value) interface{} {
+	lib.SendMessage("leave_matchmaking", map[string]interface{}{})
+
+	// Go back to mode selection
+	lib.Hide("matchmaking-panel")
+	lib.Show("mode-selection")
 
 	return nil
 }
@@ -281,6 +365,10 @@ func handleMessage(msg lib.Message) {
 		handleGameOver(msg.Data)
 	case "replay_request":
 		handleReplayRequest(msg.Data)
+	case "matchmaking_searching":
+		handleMatchmakingSearching(msg.Data)
+	case "queue_update":
+		handleQueueUpdate(msg.Data)
 	case "error":
 		handleError(msg.Data)
 	}
@@ -300,9 +388,15 @@ func handleWelcome(data interface{}) {
 	lib.SetLocalStorage("playerID", welcome.PlayerID)
 	lib.SetLocalStorage("username", welcome.Username)
 
-	lib.SetText("welcome-message", "Welcome, "+welcome.Username+" !")
+	// Update header with username
+	lib.SetText("header-username", welcome.Username)
+	lib.ShowFlex("header-user-info")
 
 	resetLobby()
+	// Show mode selection
+	lib.Show("mode-selection")
+	lib.Hide("friend-mode-panel")
+	lib.Hide("matchmaking-panel")
 	lib.ShowScreen("lobby")
 }
 
@@ -473,6 +567,44 @@ func handleError(data interface{}) {
 	lib.ShowMessage("lobby-message", errData.Message, "error")
 }
 
+func handleMatchmakingSearching(data interface{}) {
+	lib.Console("handleMatchmakingSearching: processing")
+	// Just confirm we're searching - UI already updated when button clicked
+}
+
+func handleQueueUpdate(data interface{}) {
+	var queueData struct {
+		PlayersInQueue int `json:"players_in_queue"`
+	}
+	if err := remarshal(data, &queueData); err != nil {
+		return
+	}
+
+	// Update player count display
+	playerCount := queueData.PlayersInQueue
+	var countText string
+	if playerCount == 0 {
+		countText = "0 players online"
+	} else if playerCount == 1 {
+		countText = "1 player online"
+	} else {
+		countText = fmt.Sprintf("%d players online", playerCount)
+	}
+
+	lib.SetText("player-count", countText)
+
+	// Update matchmaking status if in searching mode
+	if lib.GetElement("matchmaking-searching").Get("style").Get("display").String() == "none" {
+		statusText := "Looking for available players..."
+		if playerCount >= 2 {
+			statusText = "Match found! Starting game..."
+		} else if playerCount == 1 {
+			statusText = "Waiting for one more player..."
+		}
+		lib.SetText("matchmaking-status", statusText)
+	}
+}
+
 // UI Helper Functions
 
 func updatePlayers() {
@@ -580,6 +712,7 @@ func showWaitingArea() {
 }
 
 func resetLobby() {
+	// Reset friend mode panel
 	lib.Hide("waiting-area")
 	lib.Show("create-game-btn")
 
@@ -595,6 +728,9 @@ func resetLobby() {
 
 	lib.SetValue("join-code-input", "")
 	lib.Get().SetGameCode("")
+
+	// Reset matchmaking panel
+	lib.Hide("matchmaking-searching")
 }
 
 func showGameCodeInGame() {

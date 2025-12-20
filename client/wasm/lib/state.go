@@ -75,7 +75,8 @@ func (state *State) FindPlayerIndex() int {
 func (state *State) IsMyTurn() bool {
 	state.mutex.RLock()
 	defer state.mutex.RUnlock()
-	return state.CurrentTurn == state.PlayerIdx
+	isMyTurn := state.CurrentTurn == state.PlayerIdx
+	return isMyTurn
 }
 
 // ResetBoard clears the board
