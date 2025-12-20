@@ -5,25 +5,30 @@ type MessageType string
 
 const (
 	// Client to Server
-	MsgLogin      MessageType = "login"
-	MsgCreateGame MessageType = "create_game"
-	MsgJoinGame   MessageType = "join_game"
-	MsgPlay       MessageType = "play"
-	MsgReplay     MessageType = "replay"
-	MsgForfeit    MessageType = "forfeit"
-	MsgLeaveLobby MessageType = "leave_lobby"
-	MsgDisconnect MessageType = "disconnect"
+	MsgLogin            MessageType = "login"
+	MsgCreateGame       MessageType = "create_game"
+	MsgJoinGame         MessageType = "join_game"
+	MsgPlay             MessageType = "play"
+	MsgReplay           MessageType = "replay"
+	MsgForfeit          MessageType = "forfeit"
+	MsgLeaveLobby       MessageType = "leave_lobby"
+	MsgDisconnect       MessageType = "disconnect"
+	MsgJoinMatchmaking  MessageType = "join_matchmaking"
+	MsgLeaveMatchmaking MessageType = "leave_matchmaking"
 
 	// Server to Client
-	MsgWelcome     MessageType = "welcome"
-	MsgGameCreated MessageType = "game_created"
-	MsgGameJoined  MessageType = "game_joined"
-	MsgGameStart   MessageType = "game_start"
-	MsgGameState   MessageType = "game_state"
-	MsgMove        MessageType = "move"
-	MsgGameOver    MessageType = "game_over"
-	MsgReplayReq   MessageType = "replay_request"
-	MsgError       MessageType = "error"
+	MsgWelcome              MessageType = "welcome"
+	MsgGameCreated          MessageType = "game_created"
+	MsgGameJoined           MessageType = "game_joined"
+	MsgGameStart            MessageType = "game_start"
+	MsgGameState            MessageType = "game_state"
+	MsgMove                 MessageType = "move"
+	MsgGameOver             MessageType = "game_over"
+	MsgReplayReq            MessageType = "replay_request"
+	MsgError                MessageType = "error"
+	MsgMatchmakingSearching MessageType = "matchmaking_searching"
+	MsgMatchFound           MessageType = "match_found"
+	MsgQueueUpdate          MessageType = "queue_update"
 )
 
 // Message represents a websocket message
@@ -122,4 +127,9 @@ type GameStateData struct {
 	TimeRemaining  [2]int64         `json:"time_remaining"` // milliseconds
 	ReplayRequests [2]bool          `json:"replay_requests"`
 	LastMove       *LastMove        `json:"last_move,omitempty"`
+}
+
+// QueueUpdateData contains matchmaking queue information
+type QueueUpdateData struct {
+	PlayersInQueue int `json:"players_in_queue"`
 }
