@@ -70,24 +70,28 @@ func ToggleClass(id, className string, force bool) {
 	}
 }
 
-// SetDisplay sets display style property
+// SetDisplay sets display style property (deprecated, use utility classes instead)
 func SetDisplay(id, value string) {
 	SetStyle(id, "display", value)
 }
 
-// Show shows an element
+// Show shows an element using utility class
 func Show(id string) {
-	SetDisplay(id, "block")
+	RemoveClass(id, "d-none")
+	AddClass(id, "d-block")
 }
 
-// ShowFlex shows an element with flex display
+// ShowFlex shows an element with flex display using utility class
 func ShowFlex(id string) {
-	SetDisplay(id, "flex")
+	RemoveClass(id, "d-none")
+	AddClass(id, "d-flex")
 }
 
-// Hide hides an element
+// Hide hides an element using utility class
 func Hide(id string) {
-	SetDisplay(id, "none")
+	RemoveClass(id, "d-block")
+	RemoveClass(id, "d-flex")
+	AddClass(id, "d-none")
 }
 
 // ShowScreen shows a specific screen
