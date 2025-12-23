@@ -524,7 +524,8 @@ func handleMove(data interface{}) {
 	state.SetTimeRemaining(move.TimeRemaining)
 	state.SetLastMove(move.Column, move.Row)
 
-	lib.Draw()
+	playedBy := 1 - move.NextTurn
+	lib.AnimateDrop(move.Column, move.Row, playedBy)
 	updateGameStatus()
 }
 
