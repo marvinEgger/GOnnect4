@@ -8,7 +8,7 @@ package lib
 
 import "syscall/js"
 
-// Constants
+// Board rendering constants
 const (
 	CellSize       = 80
 	TokenRadius    = 28
@@ -31,23 +31,32 @@ const (
 	ColorHighlight    = "#5dc9e2"
 )
 
-var (
-	canvas         js.Value
-	canevasContext js.Value
+// Animation constants
+const (
+	dropAnimationDuration = 550 // milliseconds
+	dropStartY            = -TokenRadius * 2
+)
 
+var (
+	// Main canvas (in DOM) - used for rendering
+	canvas        js.Value
+	canvasContext js.Value
+
+	// Offscreen canvas - pre-rendered board overlay with holes
+	// This optimization avoids redrawing the board frame every time and allows us to animate drops
 	boardOverlayCanvas js.Value
 	boardOverlayCtx    js.Value
 )
 
-// Initialize sets up the canvas
+// Initialize sets up the canvas and creates the board overlay
 func Initialize() {
 	canvas = js.Global().Get("document").Call("getElementById", "game-board")
 	if canvas.IsNull() {
 		return
 	}
-	canevasContext = canvas.Call("getContext", "2d")
+	canvasContext = canvas.Call("getContext", "2d")
 
-	// Offscreen overlay (board + trous)
+	// Create offscreen canvas for board overlay
 	boardOverlayCanvas = js.Global().Get("document").Call("createElement", "canvas")
 	boardOverlayCanvas.Set("width", canvas.Get("width").Int())
 	boardOverlayCanvas.Set("height", canvas.Get("height").Int())
@@ -56,166 +65,192 @@ func Initialize() {
 	buildBoardOverlay()
 }
 
-// Draw renders the entire board
+// Draw renders the complete game board
 func Draw() {
-	if canevasContext.IsNull() {
+	if canvasContext.IsNull() {
 		return
 	}
 
 	state := Get()
 	board := state.GetBoard()
 	lastMove := state.GetLastMove()
-	w := canvas.Get("width").Int()
-	h := canvas.Get("height").Int()
+	canvasWidth := canvas.Get("width").Int()
+	canvasHeight := canvas.Get("height").Int()
 
-	canevasContext.Call("clearRect", 0, 0, w, h)
+	canvasContext.Call("clearRect", 0, 0, canvasWidth, canvasHeight)
 
-	// Token played (without empty cell's)
+	// Draw all placed tokens
+	drawPlacedTokens(board)
+
+	// Draw hover preview if player's turn
+	hoverColumn := state.GetHoverCol()
+	if hoverColumn >= 0 && hoverColumn < Cols && state.IsMyTurn() {
+		drawHoverPreview(hoverColumn, board)
+	}
+
+	// Draw board overlay (with holes)
+	canvasContext.Call("drawImage", boardOverlayCanvas, 0, 0)
+
+	// Draw highlight on last move
+	if lastMove != nil {
+		centerX := lastMove.Col*CellSize + CellSize/2
+		centerY := lastMove.Row*CellSize + CellSize/2
+		drawHighlight(centerX, centerY)
+	}
+}
+
+// drawPlacedTokens renders all tokens currently on the board
+func drawPlacedTokens(board [Rows][Cols]int) {
 	for row := 0; row < Rows; row++ {
 		for col := 0; col < Cols; col++ {
 			owner := board[row][col]
 			if owner > 0 {
-				cx := col*CellSize + CellSize/2
-				cy := row*CellSize + CellSize/2
-				drawToken(cx, cy, owner, 1.0)
+				centerX := col*CellSize + CellSize/2
+				centerY := row*CellSize + CellSize/2
+				drawToken(centerX, centerY, owner, 1.0)
 			}
 		}
 	}
+}
 
-	// Preview hover (draw behind the "board")
-	hoverCol := state.GetHoverCol()
-	if hoverCol >= 0 && hoverCol < Cols && state.IsMyTurn() {
-		drawHoverPreview(hoverCol, board)
-	}
+// drawHoverPreview draws ghost token preview at hover position
+func drawHoverPreview(column int, board [Rows][Cols]int) {
+	// Find lowest empty row
+	targetRow := findLowestEmptyRow(column, board)
 
-	// Board par-dessus (avec vrais trous)
-	canevasContext.Call("drawImage", boardOverlayCanvas, 0, 0)
-
-	// Highlight (mets un rayon légèrement plus petit pour éviter de “déborder” sur la planche)
-	if lastMove != nil {
-		cx := lastMove.Col*CellSize + CellSize/2
-		cy := lastMove.Row*CellSize + CellSize/2
-		drawHighlight(cx, cy) // idéalement arc radius = TokenRadius - HighlightWidth/2
+	if targetRow >= 0 {
+		centerX := column*CellSize + CellSize/2
+		centerY := targetRow*CellSize + CellSize/2
+		playerToken := Get().GetPlayerIdx() + 1
+		drawToken(centerX, centerY, playerToken, PreviewAlpha)
 	}
 }
 
-// drawHoverPreview draws ghost token preview
-func drawHoverPreview(col int, board [Rows][Cols]int) {
-	// Find lowest empty row
-	row := -1
-	for r := Rows - 1; r >= 0; r-- {
-		if board[r][col] == 0 {
-			row = r
-			break
+// findLowestEmptyRow returns the lowest empty row in a column, or -1 if full
+func findLowestEmptyRow(column int, board [Rows][Cols]int) int {
+	for row := Rows - 1; row >= 0; row-- {
+		if board[row][column] == 0 {
+			return row
 		}
 	}
-
-	if row >= 0 {
-		x := col * CellSize
-		y := row * CellSize
-		playerToken := Get().GetPlayerIdx() + 1
-		drawToken(x+CellSize/2, y+CellSize/2, playerToken, PreviewAlpha)
-	}
+	return -1
 }
 
-// drawToken draws a single token
-func drawToken(cx, cy, owner int, alpha float64) {
-	canevasContext.Call("beginPath")
-	canevasContext.Call("arc", cx, cy, TokenRadius, 0, 2*3.14159)
+// drawToken draws a single game token
+func drawToken(centerX, centerY, owner int, alpha float64) {
+	canvasContext.Call("beginPath")
+	canvasContext.Call("arc", centerX, centerY, TokenRadius, 0, 2*3.14159)
 
+	// Set token color based on owner
 	switch owner {
 	case 0:
-		// Empty - dark hole
-		canevasContext.Set("fillStyle", ColorEmpty)
+		canvasContext.Set("fillStyle", ColorEmpty)
 	case 1:
-		// Player 0 - Red
 		if alpha < 1.0 {
-			canevasContext.Set("fillStyle", ColorPlayer0Alpha+formatAlpha(alpha)+")")
+			canvasContext.Set("fillStyle", ColorPlayer0Alpha+formatAlpha(alpha)+")")
 		} else {
-			canevasContext.Set("fillStyle", ColorPlayer0)
+			canvasContext.Set("fillStyle", ColorPlayer0)
 		}
 	case 2:
-		// Player 1 - Yellow
 		if alpha < 1.0 {
-			canevasContext.Set("fillStyle", ColorPlayer1Alpha+formatAlpha(alpha)+")")
+			canvasContext.Set("fillStyle", ColorPlayer1Alpha+formatAlpha(alpha)+")")
 		} else {
-			canevasContext.Set("fillStyle", ColorPlayer1)
+			canvasContext.Set("fillStyle", ColorPlayer1)
 		}
 	}
 
-	canevasContext.Call("fill")
+	canvasContext.Call("fill")
 
-	// Shine effect for tokens
+	// Add shine effect for tokens
 	if owner > 0 {
-		canevasContext.Call("beginPath")
-		canevasContext.Call("arc", cx-ShineOffset, cy-ShineOffset, ShineRadius, 0, 2*3.14159)
-		shineAlpha := ShineAlpha * alpha
-		canevasContext.Set("fillStyle", "rgba(255, 255, 255, "+formatAlpha(shineAlpha)+")")
-		canevasContext.Call("fill")
+		drawShineEffect(centerX, centerY, alpha)
 	}
+}
+
+// drawShineEffect adds a shine highlight to tokens
+func drawShineEffect(centerX, centerY int, tokenAlpha float64) {
+	canvasContext.Call("beginPath")
+	canvasContext.Call("arc", centerX-ShineOffset, centerY-ShineOffset, ShineRadius, 0, 2*3.14159)
+	shineAlpha := ShineAlpha * tokenAlpha
+	canvasContext.Set("fillStyle", "rgba(255, 255, 255, "+formatAlpha(shineAlpha)+")")
+	canvasContext.Call("fill")
 }
 
 // drawHighlight draws a ring around the last played token
-func drawHighlight(cx, cy int) {
-	canevasContext.Call("beginPath")
-	canevasContext.Call("arc", cx, cy, TokenRadius, 0, 2*3.14159)
-	canevasContext.Set("strokeStyle", ColorHighlight)
-	canevasContext.Set("lineWidth", HighlightWidth)
-	canevasContext.Call("stroke")
+func drawHighlight(centerX, centerY int) {
+	canvasContext.Call("beginPath")
+	canvasContext.Call("arc", centerX, centerY, TokenRadius, 0, 2*3.14159)
+	canvasContext.Set("strokeStyle", ColorHighlight)
+	canvasContext.Set("lineWidth", HighlightWidth)
+	canvasContext.Call("stroke")
 }
 
+// drawFrameFalling renders a single animation frame during token drop
+// The board state already contains the final token position, but we skip drawing it
+// at its final location (excludeCol, excludeRow) to draw it at the animated position instead
 func drawFrameFalling(excludeCol, excludeRow int, fallingX, fallingY float64, fallingOwner int) {
 	state := Get()
 	board := state.GetBoard()
-	w := canvas.Get("width").Int()
-	h := canvas.Get("height").Int()
+	canvasWidth := canvas.Get("width").Int()
+	canvasHeight := canvas.Get("height").Int()
 
-	canevasContext.Call("clearRect", 0, 0, w, h)
+	canvasContext.Call("clearRect", 0, 0, canvasWidth, canvasHeight)
 
-	// Jetons posés (sauf la case finale du jeton animé)
-	for r := 0; r < Rows; r++ {
-		for c := 0; c < Cols; c++ {
-			if c == excludeCol && r == excludeRow {
+	// Draw all placed tokens, skipping the one being animated
+	for row := 0; row < Rows; row++ {
+		for col := 0; col < Cols; col++ {
+			if col == excludeCol && row == excludeRow {
 				continue
 			}
-			owner := board[r][c]
+			owner := board[row][col]
 			if owner > 0 {
-				drawToken(c*CellSize+CellSize/2, r*CellSize+CellSize/2, owner, 1.0)
+				centerX := col*CellSize + CellSize/2
+				centerY := row*CellSize + CellSize/2
+				drawToken(centerX, centerY, owner, 1.0)
 			}
 		}
 	}
 
-	// Jeton qui tombe
+	// Draw falling token at its current animated position
 	drawToken(int(fallingX), int(fallingY), fallingOwner, 1.0)
 
-	// Board overlay au-dessus
-	canevasContext.Call("drawImage", boardOverlayCanvas, 0, 0)
+	// Draw board overlay (holes and grid) on top of everything
+	canvasContext.Call("drawImage", boardOverlayCanvas, 0, 0)
 }
 
+// buildBoardOverlay creates the pre-rendered board frame with holes
 func buildBoardOverlay() {
-	w := boardOverlayCanvas.Get("width").Int()
-	h := boardOverlayCanvas.Get("height").Int()
+	overlayWidth := boardOverlayCanvas.Get("width").Int()
+	overlayHeight := boardOverlayCanvas.Get("height").Int()
 
-	// Fond board
-	boardOverlayCtx.Call("clearRect", 0, 0, w, h)
+	// Fill board background
+	boardOverlayCtx.Call("clearRect", 0, 0, overlayWidth, overlayHeight)
 	boardOverlayCtx.Set("fillStyle", ColorBoardBg)
-	boardOverlayCtx.Call("fillRect", 0, 0, w, h)
+	boardOverlayCtx.Call("fillRect", 0, 0, overlayWidth, overlayHeight)
 
-	// Perce les trous (alpha = 0)
+	// Punch out holes using destination-out compositing
 	boardOverlayCtx.Call("save")
 	boardOverlayCtx.Set("globalCompositeOperation", "destination-out")
 	for row := 0; row < Rows; row++ {
 		for col := 0; col < Cols; col++ {
-			cx := col*CellSize + CellSize/2
-			cy := row*CellSize + CellSize/2
+			centerX := col*CellSize + CellSize/2
+			centerY := row*CellSize + CellSize/2
 			boardOverlayCtx.Call("beginPath")
-			boardOverlayCtx.Call("arc", cx, cy, TokenRadius, 0, 2*3.14159)
+			boardOverlayCtx.Call("arc", centerX, centerY, TokenRadius, 0, 2*3.14159)
 			boardOverlayCtx.Call("fill")
 		}
 	}
 	boardOverlayCtx.Call("restore")
 
-	// Grille / bordures par-dessus
+	// Draw grid lines
+	drawGridLines()
+
+	// Draw hole shadows for depth effect
+	drawHoleShadows()
+}
+
+// drawGridLines draws the board grid
+func drawGridLines() {
 	boardOverlayCtx.Set("strokeStyle", ColorBoardBorder)
 	boardOverlayCtx.Set("lineWidth", 2)
 	for row := 0; row < Rows; row++ {
@@ -225,65 +260,70 @@ func buildBoardOverlay() {
 			boardOverlayCtx.Call("strokeRect", x, y, CellSize, CellSize)
 		}
 	}
+}
 
-	// Petit “rebord” sombre autour des trous (optionnel mais joli)
+// drawHoleShadows adds subtle shadows around holes for depth
+func drawHoleShadows() {
 	boardOverlayCtx.Set("strokeStyle", "rgba(0,0,0,0.25)")
 	boardOverlayCtx.Set("lineWidth", 4)
 	for row := 0; row < Rows; row++ {
 		for col := 0; col < Cols; col++ {
-			cx := col*CellSize + CellSize/2
-			cy := row*CellSize + CellSize/2
+			centerX := col*CellSize + CellSize/2
+			centerY := row*CellSize + CellSize/2
 			boardOverlayCtx.Call("beginPath")
-			boardOverlayCtx.Call("arc", cx, cy, TokenRadius-2, 0, 2*3.14159)
+			boardOverlayCtx.Call("arc", centerX, centerY, TokenRadius-2, 0, 2*3.14159)
 			boardOverlayCtx.Call("stroke")
 		}
 	}
 }
 
-// AnimateDrop animates a token falling into (col,row).
-// playerIdx: 0 for player0, 1 for player1
-func AnimateDrop(col, row, playerIdx int) {
-	if canevasContext.IsNull() || canvas.IsNull() {
+// AnimateDrop creates a drop animation for a token falling into position
+// Uses requestAnimationFrame to create smooth 60fps animation with quadratic easing
+// Animation flow :
+//  1. Token starts above the board (dropStartY)
+//  2. Falls to final position (row) over dropAnimationDuration ms
+//  3. Uses quadratic easing (progress²) to simulate gravity acceleration
+//  4. Calls Draw() when complete to render final state with highlight
+func AnimateDrop(column, row, playerIdx int) {
+	if canvasContext.IsNull() || canvas.IsNull() {
 		Draw()
 		return
 	}
 
-	// X center (column)
-	x := float64(col*CellSize + CellSize/2)
-
-	// Y: start above the board, end at cell center
-	startY := float64(-TokenRadius * 2)
+	// Step 1
+	centerX := float64(column*CellSize + CellSize/2)
 	endY := float64(row*CellSize + CellSize/2)
-
-	// Duration in ms
-	duration := 650.0
 	startTime := js.Global().Get("performance").Call("now").Float()
-
-	owner := playerIdx + 1 // board values are 1/2
+	owner := playerIdx + 1
 
 	var animate js.Func
 	animate = js.FuncOf(func(this js.Value, args []js.Value) any {
-		now := args[0].Float()
-		t := (now - startTime) / duration
-		if t < 0 {
-			t = 0
+		// Step 2
+		currentTime := args[0].Float()
+		progress := (currentTime - startTime) / dropAnimationDuration
+
+		// Clamp progress to [0, 1]
+		if progress < 0 {
+			progress = 0
 		}
-		if t > 1 {
-			t = 1
+		if progress > 1 {
+			progress = 1
 		}
 
-		// easing (gravity-ish)
-		e := t * t
-		y := startY + (endY-startY)*e
+		// Step 3 (Quadratic easing progress² gives gravity-like acceleration)
+		eased := progress * progress
+		currentY := dropStartY + (endY-dropStartY)*eased
 
-		// IMPORTANT: redraw a full frame (tokens + falling + overlay)
-		drawFrameFalling(col, row, x, y, owner)
+		// Draw the falling token in canvas
+		drawFrameFalling(column, row, centerX, currentY, owner)
 
-		if t < 1 {
+		// Continue animation or finish
+		if progress < 1 {
 			js.Global().Call("requestAnimationFrame", animate)
 		} else {
+			// Step 4 final
 			animate.Release()
-			Draw() // final clean draw (with highlight etc.)
+			Draw()
 		}
 		return nil
 	})
@@ -291,68 +331,66 @@ func AnimateDrop(col, row, playerIdx int) {
 	js.Global().Call("requestAnimationFrame", animate)
 }
 
-// formatAlpha formats alpha value for CSS
+// formatAlpha formats alpha value for CSS rgba
 func formatAlpha(alpha float64) string {
-	// Simple float to string conversion
 	if alpha >= 1.0 {
 		return "1"
 	}
 	if alpha <= 0.0 {
 		return "0"
 	}
-	// Convert to string with 2 decimal places
 	return js.Global().Get("Number").New(alpha).Call("toFixed", 2).String()
 }
 
-// HandleClick processes click on board
+// HandleClick processes mouse clicks on the board
 func HandleClick(event js.Value) {
-	if !Get().IsMyTurn() {
+	state := Get()
+
+	// Ignore clicks when game is finished or not player's turn
+	if state.GetGameFinished() || !state.IsMyTurn() {
 		return
 	}
 
-	rect := canvas.Call("getBoundingClientRect")
-	clientX := event.Get("clientX").Float()
-	rectLeft := rect.Get("left").Float()
-	rectWidth := rect.Get("width").Float()
-
-	// Normalize x to canvas coordinates (0-560)
-	x := (clientX - rectLeft) / rectWidth * 560.0
-	col := int(x / CellSize)
-
-	if col >= 0 && col < Cols {
-		// Send play message via WebSocket
-		// This will be called from main.go where we have access to WebSocket
-		js.Global().Call("playColumn", col)
+	column := getColumnFromEvent(event)
+	if column >= 0 && column < Cols {
+		js.Global().Call("playColumn", column)
 	}
 }
 
-// HandleHover updates hover column
+// HandleHover updates hover column preview
 func HandleHover(event js.Value) {
-	if !Get().IsMyTurn() {
+	state := Get()
+
+	// Hide hover when game is finished or not player's turn
+	if state.GetGameFinished() || !state.IsMyTurn() {
 		return
 	}
 
-	rect := canvas.Call("getBoundingClientRect")
-	clientX := event.Get("clientX").Float()
-	rectLeft := rect.Get("left").Float()
-	rectWidth := rect.Get("width").Float()
+	column := getColumnFromEvent(event)
 
-	// Normalize x to canvas coordinates (0-560)
-	x := (clientX - rectLeft) / rectWidth * 560.0
-	col := int(x / CellSize)
-
-	state := Get()
-	if col >= 0 && col < Cols && col != state.GetHoverCol() {
-		state.SetHoverCol(col)
+	if column >= 0 && column < Cols && column != state.GetHoverCol() {
+		state.SetHoverCol(column)
 		Draw()
 	}
 }
 
-// HandleLeave clears hover preview
+// HandleLeave clears hover preview when mouse leaves board
 func HandleLeave(event js.Value) {
 	state := Get()
 	if state.GetHoverCol() != -1 {
 		state.ClearHover()
 		Draw()
 	}
+}
+
+// getColumnFromEvent extracts the column number from a mouse event
+func getColumnFromEvent(event js.Value) int {
+	rect := canvas.Call("getBoundingClientRect")
+	clientX := event.Get("clientX").Float()
+	rectLeft := rect.Get("left").Float()
+	rectWidth := rect.Get("width").Float()
+
+	// Normalize x to canvas coordinates (0-560)
+	x := (clientX - rectLeft) / rectWidth * 560.0
+	return int(x / CellSize)
 }
