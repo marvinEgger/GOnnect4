@@ -34,6 +34,7 @@ type State struct {
 	GameCode                string
 	PlayerIdx               int
 	CurrentTurn             int
+	IsGameFinished          bool
 	Board                   [Rows][Cols]int
 	HoverCol                int
 	Players                 [2]Player
@@ -50,8 +51,9 @@ var once sync.Once
 func Get() *State {
 	once.Do(func() {
 		instance = &State{
-			PlayerIdx: -1,
-			HoverCol:  -1,
+			PlayerIdx:      -1,
+			HoverCol:       -1,
+			IsGameFinished: false,
 		}
 	})
 	return instance
@@ -246,4 +248,18 @@ func (state *State) GetLastMove() *LastMove {
 	state.mutex.RLock()
 	defer state.mutex.RUnlock()
 	return state.LastMove
+}
+
+// GetGameFinished returns whether the game is finished
+func (state *State) GetGameFinished() bool {
+	state.mutex.RLock()
+	defer state.mutex.RUnlock()
+	return state.IsGameFinished
+}
+
+// SetGameFinished updates the game finished status
+func (state *State) SetGameFinished(finished bool) {
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	state.IsGameFinished = finished
 }

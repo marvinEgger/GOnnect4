@@ -91,9 +91,6 @@ func Connect(username, playerID string, onMessage func(Message)) {
 
 	host := js.Global().Get("location").Get("host").String()
 	wsURL := protocol + "//" + host + "/ws"
-
-	Console("Connecting to " + wsURL)
-
 	ws = js.Global().Get("WebSocket").New(wsURL)
 
 	// OnOpen handler
@@ -152,7 +149,8 @@ func SendMessage(msgType string, data interface{}) {
 	}
 
 	readyState := ws.Get("readyState").Int()
-	if readyState != 1 { // 1 = OPEN
+	if readyState != 1 {
+		// 1 = OPEN
 		Console("WebSocket not ready")
 		return
 	}

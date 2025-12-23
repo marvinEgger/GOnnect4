@@ -53,6 +53,32 @@ func Start() {
 	}()
 }
 
+// UpdateDisplay updates timer displays
+func UpdateDisplay() {
+	s := Get()
+	times := s.GetTimeRemaining()
+
+	for i := 0; i < 2; i++ {
+		timerID := fmt.Sprintf("timer-%d", i)
+		ms := times[i]
+
+		// Format time
+		timeStr := formatTime(ms)
+		SetText(timerID, timeStr)
+
+		// Remove all state classes
+		RemoveClass(timerID, "warning")
+		RemoveClass(timerID, "danger")
+
+		// Add warning/danger classes
+		if ms <= DangerThreshold {
+			AddClass(timerID, "danger")
+		} else if ms <= WarningThreshold {
+			AddClass(timerID, "warning")
+		}
+	}
+}
+
 // Stop stops the timer countdown
 func Stop() {
 	timerMutex.Lock()
@@ -95,32 +121,6 @@ func decrementTime() {
 	}
 
 	s.SetTimeRemaining(times)
-}
-
-// UpdateDisplay updates timer displays
-func UpdateDisplay() {
-	s := Get()
-	times := s.GetTimeRemaining()
-
-	for i := 0; i < 2; i++ {
-		timerID := fmt.Sprintf("timer-%d", i)
-		ms := times[i]
-
-		// Format time
-		timeStr := formatTime(ms)
-		SetText(timerID, timeStr)
-
-		// Remove all state classes
-		RemoveClass(timerID, "warning")
-		RemoveClass(timerID, "danger")
-
-		// Add warning/danger classes
-		if ms <= DangerThreshold {
-			AddClass(timerID, "danger")
-		} else if ms <= WarningThreshold {
-			AddClass(timerID, "warning")
-		}
-	}
 }
 
 // formatTime converts milliseconds to MM:SS
