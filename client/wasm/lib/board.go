@@ -34,6 +34,9 @@ const (
 var (
 	canvas         js.Value
 	canevasContext js.Value
+
+	boardOverlayCanvas js.Value
+	boardOverlayCtx    js.Value
 )
 
 // Initialize sets up the canvas
@@ -43,6 +46,14 @@ func Initialize() {
 		return
 	}
 	canevasContext = canvas.Call("getContext", "2d")
+
+	// Offscreen overlay (board + trous)
+	boardOverlayCanvas = js.Global().Get("document").Call("createElement", "canvas")
+	boardOverlayCanvas.Set("width", canvas.Get("width").Int())
+	boardOverlayCanvas.Set("height", canvas.Get("height").Int())
+	boardOverlayCtx = boardOverlayCanvas.Call("getContext", "2d")
+
+	buildBoardOverlay()
 }
 
 // Draw renders the entire board
@@ -54,41 +65,37 @@ func Draw() {
 	state := Get()
 	board := state.GetBoard()
 	lastMove := state.GetLastMove()
-	width := canvas.Get("width").Int()
-	height := canvas.Get("height").Int()
+	w := canvas.Get("width").Int()
+	h := canvas.Get("height").Int()
 
-	// Clear
-	canevasContext.Call("clearRect", 0, 0, width, height)
+	canevasContext.Call("clearRect", 0, 0, w, h)
 
-	// Background
-	canevasContext.Set("fillStyle", ColorBoardBg)
-	canevasContext.Call("fillRect", 0, 0, width, height)
-
-	// Draw cells
+	// Token played (without empty cell's)
 	for row := 0; row < Rows; row++ {
 		for col := 0; col < Cols; col++ {
-			x := col * CellSize
-			y := row * CellSize
-
-			// Cell border
-			canevasContext.Set("strokeStyle", ColorBoardBorder)
-			canevasContext.Set("lineWidth", 2)
-			canevasContext.Call("strokeRect", x, y, CellSize, CellSize)
-
-			// Token
-			drawToken(x+CellSize/2, y+CellSize/2, board[row][col], 1.0)
-
-			// Highlight last move
-			if lastMove != nil && lastMove.Col == col && lastMove.Row == row {
-				drawHighlight(x+CellSize/2, y+CellSize/2)
+			owner := board[row][col]
+			if owner > 0 {
+				cx := col*CellSize + CellSize/2
+				cy := row*CellSize + CellSize/2
+				drawToken(cx, cy, owner, 1.0)
 			}
 		}
 	}
 
-	// Draw hover preview
+	// Preview hover (draw behind the "board")
 	hoverCol := state.GetHoverCol()
 	if hoverCol >= 0 && hoverCol < Cols && state.IsMyTurn() {
 		drawHoverPreview(hoverCol, board)
+	}
+
+	// Board par-dessus (avec vrais trous)
+	canevasContext.Call("drawImage", boardOverlayCanvas, 0, 0)
+
+	// Highlight (mets un rayon légèrement plus petit pour éviter de “déborder” sur la planche)
+	if lastMove != nil {
+		cx := lastMove.Col*CellSize + CellSize/2
+		cy := lastMove.Row*CellSize + CellSize/2
+		drawHighlight(cx, cy) // idéalement arc radius = TokenRadius - HighlightWidth/2
 	}
 }
 
@@ -155,6 +162,133 @@ func drawHighlight(cx, cy int) {
 	canevasContext.Set("strokeStyle", ColorHighlight)
 	canevasContext.Set("lineWidth", HighlightWidth)
 	canevasContext.Call("stroke")
+}
+
+func drawFrameFalling(excludeCol, excludeRow int, fallingX, fallingY float64, fallingOwner int) {
+	state := Get()
+	board := state.GetBoard()
+	w := canvas.Get("width").Int()
+	h := canvas.Get("height").Int()
+
+	canevasContext.Call("clearRect", 0, 0, w, h)
+
+	// Jetons posés (sauf la case finale du jeton animé)
+	for r := 0; r < Rows; r++ {
+		for c := 0; c < Cols; c++ {
+			if c == excludeCol && r == excludeRow {
+				continue
+			}
+			owner := board[r][c]
+			if owner > 0 {
+				drawToken(c*CellSize+CellSize/2, r*CellSize+CellSize/2, owner, 1.0)
+			}
+		}
+	}
+
+	// Jeton qui tombe
+	drawToken(int(fallingX), int(fallingY), fallingOwner, 1.0)
+
+	// Board overlay au-dessus
+	canevasContext.Call("drawImage", boardOverlayCanvas, 0, 0)
+}
+
+func buildBoardOverlay() {
+	w := boardOverlayCanvas.Get("width").Int()
+	h := boardOverlayCanvas.Get("height").Int()
+
+	// Fond board
+	boardOverlayCtx.Call("clearRect", 0, 0, w, h)
+	boardOverlayCtx.Set("fillStyle", ColorBoardBg)
+	boardOverlayCtx.Call("fillRect", 0, 0, w, h)
+
+	// Perce les trous (alpha = 0)
+	boardOverlayCtx.Call("save")
+	boardOverlayCtx.Set("globalCompositeOperation", "destination-out")
+	for row := 0; row < Rows; row++ {
+		for col := 0; col < Cols; col++ {
+			cx := col*CellSize + CellSize/2
+			cy := row*CellSize + CellSize/2
+			boardOverlayCtx.Call("beginPath")
+			boardOverlayCtx.Call("arc", cx, cy, TokenRadius, 0, 2*3.14159)
+			boardOverlayCtx.Call("fill")
+		}
+	}
+	boardOverlayCtx.Call("restore")
+
+	// Grille / bordures par-dessus
+	boardOverlayCtx.Set("strokeStyle", ColorBoardBorder)
+	boardOverlayCtx.Set("lineWidth", 2)
+	for row := 0; row < Rows; row++ {
+		for col := 0; col < Cols; col++ {
+			x := col * CellSize
+			y := row * CellSize
+			boardOverlayCtx.Call("strokeRect", x, y, CellSize, CellSize)
+		}
+	}
+
+	// Petit “rebord” sombre autour des trous (optionnel mais joli)
+	boardOverlayCtx.Set("strokeStyle", "rgba(0,0,0,0.25)")
+	boardOverlayCtx.Set("lineWidth", 4)
+	for row := 0; row < Rows; row++ {
+		for col := 0; col < Cols; col++ {
+			cx := col*CellSize + CellSize/2
+			cy := row*CellSize + CellSize/2
+			boardOverlayCtx.Call("beginPath")
+			boardOverlayCtx.Call("arc", cx, cy, TokenRadius-2, 0, 2*3.14159)
+			boardOverlayCtx.Call("stroke")
+		}
+	}
+}
+
+// AnimateDrop animates a token falling into (col,row).
+// playerIdx: 0 for player0, 1 for player1
+func AnimateDrop(col, row, playerIdx int) {
+	if canevasContext.IsNull() || canvas.IsNull() {
+		Draw()
+		return
+	}
+
+	// X center (column)
+	x := float64(col*CellSize + CellSize/2)
+
+	// Y: start above the board, end at cell center
+	startY := float64(-TokenRadius * 2)
+	endY := float64(row*CellSize + CellSize/2)
+
+	// Duration in ms
+	duration := 650.0
+	startTime := js.Global().Get("performance").Call("now").Float()
+
+	owner := playerIdx + 1 // board values are 1/2
+
+	var animate js.Func
+	animate = js.FuncOf(func(this js.Value, args []js.Value) any {
+		now := args[0].Float()
+		t := (now - startTime) / duration
+		if t < 0 {
+			t = 0
+		}
+		if t > 1 {
+			t = 1
+		}
+
+		// easing (gravity-ish)
+		e := t * t
+		y := startY + (endY-startY)*e
+
+		// IMPORTANT: redraw a full frame (tokens + falling + overlay)
+		drawFrameFalling(col, row, x, y, owner)
+
+		if t < 1 {
+			js.Global().Call("requestAnimationFrame", animate)
+		} else {
+			animate.Release()
+			Draw() // final clean draw (with highlight etc.)
+		}
+		return nil
+	})
+
+	js.Global().Call("requestAnimationFrame", animate)
 }
 
 // formatAlpha formats alpha value for CSS
