@@ -1,40 +1,54 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Script to build server and WASM client
+# Repo root = parent directory of this script (scripts/..)
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "Building GOnnect4..."
-echo "Working directory: $(pwd)"
+echo "Repo root: $ROOT_DIR"
 echo ""
 
-# Create dist directory if it doesn't exist
-mkdir -p server/dist
+# Safety checks (évite de recréer des dossiers au mauvais endroit)
+[[ -d "$ROOT_DIR/server" ]] || { echo "Error: $ROOT_DIR/server not found"; exit 1; }
+[[ -d "$ROOT_DIR/client/wasm" ]] || { echo "Error: $ROOT_DIR/client/wasm not found"; exit 1; }
 
+# --------------------
 # Build server
+# --------------------
 echo "Building server..."
-cd server
-go build -o ./dist/game .
-SERVER_STATUS=$?
-cd ..
+mkdir -p "$ROOT_DIR/server/dist"
 
-if [ $SERVER_STATUS -ne 0 ]; then
-    echo "Server build failed"
-    exit 1
-fi
+(
+  cd "$ROOT_DIR/server"
+  go build -o "./dist/game" .
+)
 
 echo "Server build successful"
 echo ""
 
-# Create dist directory if it doesn't exist
-mkdir -p client/dist
-
+# --------------------
 # Build WASM client
+# --------------------
 echo "Building WASM client..."
-./scripts/build-wasm.sh
-WASM_STATUS=$?
+mkdir -p "$ROOT_DIR/client/dist"
 
-if [ $WASM_STATUS -ne 0 ]; then
-    echo "WASM build failed"
-    exit 1
+(
+  cd "$ROOT_DIR/client/wasm"
+  GOOS=js GOARCH=wasm go build -o "../dist/game.wasm" .
+)
+
+# Copy wasm_exec.js
+WASM_EXEC_PATH="$(go env GOROOT)/lib/wasm/wasm_exec.js"
+if [[ ! -f "$WASM_EXEC_PATH" ]]; then
+  WASM_EXEC_PATH="$(go env GOROOT)/misc/wasm/wasm_exec.js"
+fi
+
+if [[ -f "$WASM_EXEC_PATH" ]]; then
+  cp "$WASM_EXEC_PATH" "$ROOT_DIR/client/dist/wasm_exec.js"
+  echo "WASM build successful ($(ls -lh "$ROOT_DIR/client/dist/game.wasm" | awk '{print $5}'))"
+else
+  echo "Warning: wasm_exec.js not found"
+  echo "WASM build successful ($(ls -lh "$ROOT_DIR/client/dist/game.wasm" | awk '{print $5}'))"
 fi
 
 echo ""
