@@ -70,13 +70,13 @@ body {
 }
 
 a {
-    color: var(--primary-hover);
+    color: var(--primary);
     text-decoration: none;
     transition: all ease-in-out .3s;
 }
 
 a:hover {
-    color: var(--success);
+    color: var(--primary-hover);
 }
 
 h1 {
@@ -236,8 +236,10 @@ footer a:hover.img-link {
 
 .screen {
     display: none;
+    justify-content: center;
     width: 100%;
-    max-width: 1400px;
+    max-width: 1200px;
+    min-height: 70vh;
 }
 
 .screen.active {
@@ -697,7 +699,7 @@ input[type="text"]::placeholder {
 /* Game Header */
 .game-header {
     width: 100%;
-    max-width: 1400px;
+    max-width: 1200px;
     display: flex;
     justify-content: space-between;
     align-items: stretch;
@@ -707,7 +709,8 @@ input[type="text"]::placeholder {
 
 /* Player Cards */
 .player-card {
-    width: 180px;
+    width: 200px;
+    min-width: 200px;
     background: var(--bg-card);
     padding: var(--space-sm);
     border-radius: 12px;
@@ -820,10 +823,14 @@ input[type="text"]::placeholder {
 }
 
 .replay-area {
-    margin-top: 0.75rem;
+    margin-top: var(--space-xs);
     display: flex;
     justify-content: center;
     gap: var(--space-xs);
+}
+
+.replay-area .btn {
+    margin: var(--space-xs) 0;
 }
 
 /* Game Actions */
@@ -895,6 +902,24 @@ input[type="text"]::placeholder {
 /* ============================================
    13. MEDIA QUERIES (RESPONSIVE)
    ============================================ */
+/* Laptop */
+@media (max-width: 1600px) {
+    header .logo img {
+        height: 100px;
+    }
+
+    .mode-icon img {
+        height: 90px;
+    }
+
+    footer {
+        padding: 1rem var(--space-md);
+    }
+
+    footer .footer-logo {
+        height: 28px;
+    }
+}
 
 /* Tablet */
 @media (max-width: 1024px) {
@@ -980,6 +1005,21 @@ input[type="text"]::placeholder {
         max-width: 100%;
     }
 
+    footer {
+        padding: 0.75rem var(--space-sm);
+    }
+
+    footer .footer-logo {
+        height: 20px;
+    }
+}
+
+/* Small Mobile */
+@media (max-width: 825px) {
+    main {
+        align-items: flex-start;
+    }
+
     .game-header {
         flex-wrap: wrap;
         justify-content: center;
@@ -1027,13 +1067,6 @@ input[type="text"]::placeholder {
         font-size: 1rem;
         padding: 0.6rem;
     }
-}
-
-/* Small Mobile */
-@media (max-width: 825px) {
-    main {
-        align-items: flex-start;
-    }
 
     .game-actions {
         flex-direction: row;
@@ -1049,6 +1082,10 @@ input[type="text"]::placeholder {
 @media (max-width: 492px) {
     body {
         font-size: 0.9rem;
+    }
+
+    main {
+        padding: var(--space-xs) 0;
     }
 
     header {
@@ -1068,11 +1105,11 @@ input[type="text"]::placeholder {
     }
 
     footer {
-        padding: 0.75rem var(--space-md);
+        padding: 0.5rem var(--space-xs);
     }
 
     footer .footer-logo {
-        height: 28px;
+        height: 16px;
     }
 
     footer .footer-right {
@@ -1110,6 +1147,19 @@ input[type="text"]::placeholder {
 
     #game-board {
         width: 100% !important;
+    }
+
+    .hidden-sm {
+        display: none !important;
+    }
+
+    .btn-back {
+        position: relative;
+        margin-right: auto;
+    }
+
+    .replay-area .btn {
+        width: 100%;
     }
 }
 
