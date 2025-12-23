@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
 // SPDX-License-Identifier: Apache-2.0
-// Author:  Astrit Aslani astrit.aslani@gmail.com
+// Author: Astrit Aslani astrit.aslani@gmail.com
 // Created: 08.12.2025
 //go:build js && wasm
 
