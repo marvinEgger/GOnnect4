@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Author:  Marvin Egger marvin.egger@hotmail.ch
 // Created: 05.12.2025
+
 package lib
 
 import (
