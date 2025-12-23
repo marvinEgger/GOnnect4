@@ -1,0 +1,91 @@
+# =========================================================
+# GOnnect4 - Apache .htaccess
+# (Security headers, HTTPS + non-www redirects, caching, compression, WASM MIME)
+# =========================================================
+
+# --- Basic hardening
+ServerSignature Off
+Options -Indexes
+
+# Block access to common sensitive / dev files
+<FilesMatch "(^\.|composer\.(json|lock)|package(-lock)?\.json|yarn\.lock|pnpm-lock\.yaml|webpack\.config\.js|vite\.config\.(js|ts)|tsconfig\.json|README\.md|LICENSE|\.env)">
+  Require all denied
+</FilesMatch>
+
+# --- Force HTTPS + redirect www -> non-www
+RewriteEngine On
+
+# Force HTTPS (also supports setups behind a proxy/CDN that sets X-Forwarded-Proto)
+RewriteCond %{HTTPS} !=on [OR]
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Redirect www.gonnect4.ch -> gonnect4.ch
+RewriteCond %{HTTP_HOST} ^www\.gonnect4\.ch$ [NC]
+RewriteRule ^ https://gonnect4.ch%{REQUEST_URI} [R=301,L]
+
+# --- Security headers
+<IfModule mod_headers.c>
+  # Prevent MIME sniffing
+  Header always set X-Content-Type-Options "nosniff"
+
+  # Prevent clickjacking (deny framing)
+  Header always set X-Frame-Options "DENY"
+
+  # Limit referrer leakage
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Disable powerful features you don't need
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+  # HSTS (ONLY enable if your whole site is HTTPS and will stay that way)
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+  # Content Security Policy
+  # NOTE: You currently have an inline script that boots WASM, so 'unsafe-inline' is allowed for scripts.
+  # If you move that inline script into an external JS file, you can remove 'unsafe-inline' for stronger security.
+  Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; upgrade-insecure-requests"
+</IfModule>
+
+# --- Ensure correct MIME type for WebAssembly
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+</IfModule>
+
+# --- Compression (gzip)
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json application/wasm image/svg+xml
+</IfModule>
+
+# --- Browser caching
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # HTML: keep short to avoid stale deployments
+  ExpiresByType text/html "access plus 5 minutes"
+
+  # CSS/JS/WASM: 30 days (best with versioned filenames)
+  ExpiresByType text/css "access plus 30 days"
+  ExpiresByType application/javascript "access plus 30 days"
+  ExpiresByType text/javascript "access plus 30 days"
+  ExpiresByType application/wasm "access plus 30 days"
+
+  # Images / fonts: 1 year
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Long cache for static assets (ideal if files are versioned)
+  <FilesMatch "\.(css|js|mjs|wasm|png|jpg|jpeg|webp|svg|ico|woff2)$">
+    Header set Cache-Control "public, max-age=2592000, immutable"
+  </FilesMatch>
+
+  # Short cache for HTML
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "public, max-age=300"
+  </FilesMatch>
+</IfModule>

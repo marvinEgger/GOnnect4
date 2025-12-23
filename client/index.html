@@ -4,16 +4,33 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>GOnnect4 - Connect 4 in Go</title>
+        <meta name="description" content="Play Connect 4 online with matchmaking or private codes. Built with Go + WebAssembly.">
+        <link rel="icon" href="./favicon.ico">
+        <link rel="canonical" href="https://gonnect4.ch/">
+        <meta property="og:site_name" content="GOnnect4">
+        <meta property="og:locale" content="en_US">
+        <meta property="og:title" content="GOnnect4">
+        <meta property="og:description" content="Connect 4 built with Go + WebAssembly. Quick match or play with friends.">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://gonnect4.ch/">
+        <meta property="og:image" content="https://gonnect4.ch/assets/images/opengraph.png">
+        <meta name="twitter:title" content="GOnnect4">
+        <meta name="twitter:description" content="Connect 4 built with Go + WebAssembly. Quick match or play with friends.">
+        <meta name="twitter:image" content="https://gonnect4.ch/assets/images/opengraph.png">
+        <meta name="twitter:url" content="https://gonnect4.ch/">
+        <meta name="theme-color" content="#0b1220">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="style.css">
+        <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap">
+        <link rel="preload" href="style.css?v=20251223" as="style">
+        <link rel="stylesheet" href="style.css?v=20251223">
     </head>
     <body>
         <!-- Header -->
         <header>
             <div class="logo">
-                <img src="assets/logo/GOnnect4.png" alt="GOnnect4" id="main-logo">
+                <img src="assets/logo/GOnnect4.webp" width="auto" height="110" alt="GOnnect4 logo" id="main-logo" fetchpriority="high" decoding="async">
                 <h1>GOnnect4</h1>
             </div>
             <div class="header-user-info d-none" id="header-user-info">
@@ -29,9 +46,10 @@
                 <div class="card">
                     <h1>Welcome to GOnnect4&nbsp;!</h1>
                     <p class="subtitle">The Connect 4 game built with Go</p>
-                    <input type="text" id="username-input" placeholder="Enter your username" maxlength="20">
+                    <label for="username-input" class="sr-only">Username</label>
+                    <input type="text" id="username-input" placeholder="Enter your username" maxlength="20" autocomplete="username">
                     <button id="connect-btn" class="btn btn-success">Connect</button>
-                    <div id="login-message" class="message"></div>
+                    <div id="login-message" class="message" role="status" aria-live="polite"></div>
                 </div>
             </div>
 
@@ -44,7 +62,7 @@
                         <div class="mode-grid">
                             <!-- Quick match -->
                             <div class="mode-option">
-                                <div class="mode-icon"><img src="./assets/images/multiplayers.png" /></div>
+                                <div class="mode-icon"><img src="./assets/images/multiplayers.webp" width="auto" height="100" alt="" aria-hidden="true" fetchpriority="high" decoding="async" /></div>
                                 <h3>Quick match</h3>
                                 <p class="mode-description">Find an opponent online instantly</p>
                                 <div id="players-online" class="players-online">
@@ -56,7 +74,7 @@
 
                             <!-- Play with Friend -->
                             <div class="mode-option">
-                                <div class="mode-icon"><img src="./assets/images/friends.png" /></div>
+                                <div class="mode-icon"><img src="./assets/images/friends.webp" width="auto" height="100" alt="" aria-hidden="true" fetchpriority="high" decoding="async" /></div>
                                 <h3>Play with a friend</h3>
                                 <p class="mode-description">Host a private match or join with a code</p>
                                 <button id="friend-mode-btn" class="btn btn-primary btn-large">Invite or Join</button>
@@ -64,7 +82,7 @@
 
                             <!-- Play vs Bot -->
                             <div class="mode-option mode-disabled">
-                                <div class="mode-icon"><img src="./assets/images/bot.png" /></div>
+                                <div class="mode-icon"><img src="./assets/images/bot.webp" width="auto" height="100" alt="" aria-hidden="true" fetchpriority="high" decoding="async" /></div>
                                 <h3>Play with an AI</h3>
                                 <p class="mode-description">Practice against an AI opponent</p>
                                 <button class="btn btn-large" disabled>Coming Soon</button>
@@ -92,6 +110,7 @@
                         <div class="lobby-section">
                             <label>Join with code</label>
                             <div class="input-group">
+                                <label for="join-code-input" class="sr-only">Join with code</label>
                                 <input type="text" id="join-code-input" class="input-uppercase" placeholder="XXXXX" maxlength="5">
                                 <button id="join-game-btn" class="btn btn-primary">Join</button>
                             </div>
@@ -131,7 +150,7 @@
                     </div>
                 </div>
 
-                <div id="lobby-message" class="message"></div>
+                <div id="lobby-message" class="message" role="status" aria-live="polite"></div>
             </div>
 
             <!-- Game Screen -->
@@ -139,7 +158,7 @@
                 <!-- Game Header with Players and Info -->
                 <div class="game-header">
                     <div class="player-card player-0" id="player-0">
-                        <img src="assets/token/red.png" alt="Red" class="player-token">
+                        <img src="assets/token/red.png" alt="Red token player" class="player-token" loading="lazy">
                         <div class="player-info">
                             <div class="player-name">Player 1</div>
                             <div class="player-badge">You</div>
@@ -148,7 +167,7 @@
                     </div>
 
                     <div class="game-info-center">
-                        <div id="game-status" class="status-message">Waiting...</div>
+                        <div id="game-status" class="status-message" role="status" aria-live="polite">Waiting...</div>
                         <div id="game-code-area" class="code-area">
                             <span id="game-code-info">-----</span>
                             <button id="copy-code-game-btn" class="btn btn-small btn-warning">Copy</button>
@@ -160,7 +179,7 @@
                     </div>
 
                     <div class="player-card player-1" id="player-1">
-                        <img src="assets/token/yellow.png" alt="Yellow" class="player-token">
+                        <img src="assets/token/yellow.png" alt="Yellow token player" class="player-token" loading="lazy">
                         <div class="player-info">
                             <div class="player-name">Player 2</div>
                             <div class="player-badge">Opponent</div>
@@ -171,7 +190,7 @@
 
                 <!-- Game Board -->
                 <div class="board-container">
-                    <canvas id="game-board" width="560" height="480"></canvas>
+                    <canvas id="game-board" width="560" height="480">Connect 4 board. Please use a modern browser.</canvas>
                 </div>
 
                 <!-- Custom Game Actions -->
@@ -189,21 +208,23 @@
         <!-- Footer -->
         <footer>
             <div class="footer-left">
-                <a class="img-link" href="https://go.dev/" target="_blank">
-                    <img src="assets/logo/go.png" alt="Go" class="footer-logo">
+                <a class="img-link" href="https://go.dev/" target="_blank" rel="noopener">
+                    <img src="assets/logo/go.webp" alt="Go lang logo" class="footer-logo" loading="lazy" decoding="async">
                 </a>
             </div>
             <div class="footer-right">
-                <span class="hidden-sm">Developed by </span><a href="https://github.com/AstritA" target="_blank">Astrit&nbsp;Aslani</a> &&nbsp;<a href="https://github.com/marvinEgger" target="_blank">Marvin&nbsp;Egger</a>
+                <span class="hidden-sm">Developed by </span><a href="https://github.com/AstritA" target="_blank" rel="noopener">Astrit&nbsp;Aslani</a> &&nbsp;<a href="https://github.com/marvinEgger" target="_blank" rel="noopener">Marvin&nbsp;Egger</a>
             </div>
         </footer>
 
         <!-- WebAssembly -->
-        <script src="dist/wasm_exec.js"></script>
-        <script>
-            const go = new Go();
-            WebAssembly.instantiateStreaming(fetch("dist/game.wasm"), go.importObject).then((result) => {
-                go.run(result.instance);
+        <script src="dist/wasm_exec.js?v=20251223" defer></script>
+        <script defer>
+            window.addEventListener("DOMContentLoaded", () => {
+                const go = new Go();
+                WebAssembly.instantiateStreaming(fetch("dist/game.wasm"), go.importObject)
+                    .then((result) => go.run(result.instance))
+                    .catch(console.error);
             });
         </script>
     </body>

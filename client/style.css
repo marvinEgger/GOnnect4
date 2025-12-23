@@ -1,10 +1,10 @@
 /* ============================================
-   GONNECT4 - STYLES
-   CSS following Go brand guidelines
+   GOnnect4
+   CSS following GO brand guidelines
    ============================================ */
 
 /* ============================================
-   1. RESET & BASE
+   1. Rest & Base
    ============================================ */
 
 * {
@@ -14,16 +14,16 @@
 }
 
 /* ============================================
-   2. CSS VARIABLES (THEME)
+   2. CSS variables (theme from GO brand book)
    ============================================ */
 
 :root {
-    /* Background Colors */
+    /* Background colors */
     --bg-dark: #18222C;
     --bg-card: #253443;
     --bg-hover: #414153;
 
-    /* Brand Colors */
+    /* Brand colors */
     --primary: #00add8;
     --primary-hover: #5dc9e2;
     --success: #2FBF9A;
@@ -33,20 +33,20 @@
     --danger: #E06C75;
     --danger-hover: #F08C94;
 
-    /* Text Colors */
+    /* Text colors */
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
 
-    /* Border Colors */
+    /* Border colors */
     --border: #475569;
     --border-active: #5dc9e2;
 
-    /* Token Colors */
+    /* Token colors */
     --red-token: #ce3262;
     --yellow-token: #fddd00;
 
-    /* Spacing System */
+    /* Spacing system */
     --space-xs: 0.5rem;
     --space-sm: 1rem;
     --space-md: 1.5rem;
@@ -55,8 +55,8 @@
 }
 
 /* ============================================
-   3. TYPOGRAPHY
-   Using Work Sans from Go brand guidelines
+   3. Typography
+   Using work sans from GO brand guidelines
    ============================================ */
 
 body {
@@ -104,7 +104,7 @@ h3 {
 }
 
 /* ============================================
-   4. LAYOUT
+   4. Layout
    ============================================ */
 
 body {
@@ -207,7 +207,7 @@ footer a:hover.img-link {
 }
 
 /* ============================================
-   4.5. UTILITY CLASSES (Display)
+   4.5. Utility classes (display)
    ============================================ */
 
 .d-none {
@@ -230,8 +230,12 @@ footer a:hover.img-link {
     display: inline-block !important;
 }
 
+.sr-only {
+    display: none;
+}
+
 /* ============================================
-   5. COMPONENTS - SCREENS
+   5. Components - Screens
    ============================================ */
 
 .screen {
@@ -249,7 +253,7 @@ footer a:hover.img-link {
 }
 
 /* ============================================
-   6. COMPONENTS - CARDS
+   6. Components - Cards
    ============================================ */
 
 .card {
@@ -268,7 +272,7 @@ footer a:hover.img-link {
     text-align: center;
 }
 
-/* User Info Card */
+/* User info card */
 .user-info-card {
     padding: 1.25rem var(--space-lg);
 }
@@ -284,7 +288,7 @@ footer a:hover.img-link {
     font-size: 1.5rem;
 }
 
-/* Card Header */
+/* Card header */
 .card-header {
     position: relative;
     display: flex;
@@ -313,7 +317,7 @@ footer a:hover.img-link {
 }
 
 /* ============================================
-   7. COMPONENTS - FORMS
+   7. Components - Forms
    ============================================ */
 
 /* Inputs */
@@ -382,7 +386,7 @@ input[type="text"]::placeholder {
     opacity: 0.6;
 }
 
-/* Button Variants */
+/* Button variants */
 .btn-primary {
     background: var(--primary);
     color: white;
@@ -430,7 +434,7 @@ input[type="text"]::placeholder {
     border-color: var(--border-active);
 }
 
-/* Button Sizes */
+/* Button sizes */
 .btn-large {
     width: 100%;
     padding: 1.25rem;
@@ -453,7 +457,7 @@ input[type="text"]::placeholder {
 }
 
 /* ============================================
-   8. COMPONENTS - MESSAGES
+   8. Components - Messages
    ============================================ */
 
 .message {
@@ -488,7 +492,7 @@ input[type="text"]::placeholder {
 }
 
 /* ============================================
-   9. COMPONENTS - LOBBY & MODES
+   9. Components - Lobby & Modes
    ============================================ */
 
 .lobby-container {
@@ -506,7 +510,7 @@ input[type="text"]::placeholder {
     font-weight: 500;
 }
 
-/* Mode Selection */
+/* Mode selection */
 .mode-selection-card {
     padding: var(--space-xl);
 }
@@ -565,7 +569,7 @@ input[type="text"]::placeholder {
     cursor: not-allowed;
 }
 
-/* Players Online Indicator */
+/* Players online indicator */
 .players-online {
     display: flex;
     align-items: center;
@@ -617,7 +621,7 @@ input[type="text"]::placeholder {
     right: 0;
 }
 
-/* Waiting Area */
+/* Waiting area */
 .waiting-area {
     margin-top: var(--space-lg);
     padding: var(--space-lg);
@@ -658,7 +662,7 @@ input[type="text"]::placeholder {
     font-size: 0.875rem;
 }
 
-/* Matchmaking Info */
+/* Matchmaking info */
 .matchmaking-info {
     display: flex;
     flex-direction: column;
@@ -679,7 +683,7 @@ input[type="text"]::placeholder {
 }
 
 /* ============================================
-   10. COMPONENTS - GAME SCREEN
+   10. Components - Game screen
    ============================================ */
 
 #game-screen {
@@ -696,7 +700,7 @@ input[type="text"]::placeholder {
     display: flex;
 }
 
-/* Game Header */
+/* Game header */
 .game-header {
     width: 100%;
     max-width: 1200px;
@@ -707,7 +711,7 @@ input[type="text"]::placeholder {
     margin: 0 auto var(--space-sm);
 }
 
-/* Player Cards */
+/* Player cards */
 .player-card {
     width: 200px;
     min-width: 200px;
@@ -786,7 +790,7 @@ input[type="text"]::placeholder {
     animation: pulse 0.5s infinite;
 }
 
-/* Game Info Center */
+/* Game info center */
 .game-info-center {
     flex: 1;
     background: var(--bg-card);
@@ -833,7 +837,7 @@ input[type="text"]::placeholder {
     margin: var(--space-xs) 0;
 }
 
-/* Game Actions */
+/* Game actions */
 .game-actions {
     position: absolute;
     right: var(--space-sm);
@@ -846,7 +850,7 @@ input[type="text"]::placeholder {
 }
 
 /* ============================================
-   11. COMPONENTS - BOARD
+   11. Components - Board
    ============================================ */
 
 .board-container {
@@ -870,7 +874,7 @@ input[type="text"]::placeholder {
 }
 
 /* ============================================
-   12. ANIMATIONS
+   12. Animations
    ============================================ */
 
 @keyframes pulse-animation {
@@ -900,8 +904,9 @@ input[type="text"]::placeholder {
 }
 
 /* ============================================
-   13. MEDIA QUERIES (RESPONSIVE)
+   13. Media queries (Responsive)
    ============================================ */
+
 /* Laptop */
 @media (max-width: 1600px) {
     header .logo img {
@@ -921,7 +926,7 @@ input[type="text"]::placeholder {
     }
 }
 
-/* Tablet */
+/* Tablet / small screen */
 @media (max-width: 1024px) {
     .card {
         padding: var(--space-lg);
@@ -942,6 +947,70 @@ input[type="text"]::placeholder {
 
     .player-card {
         width: 160px;
+    }
+}
+
+/* Tablet / very small screen */
+@media (max-width: 825px) {
+    main {
+        align-items: flex-start;
+    }
+
+    .game-header {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--space-sm);
+        max-width: 100%;
+    }
+
+    .player-card {
+        flex: 1 1 45%;
+        width: auto;
+        padding: 0.6rem;
+        gap: var(--space-xs);
+    }
+
+    .player-token {
+        width: 30px;
+        height: 30px;
+    }
+
+    .player-name {
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .player-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.6rem;
+    }
+
+    #player-0 {
+        order: 1;
+    }
+
+    #player-1 {
+        order: 2;
+    }
+
+    .game-info-center {
+        order: 3;
+        flex: 1 1 100%;
+        padding: 0.75rem;
+    }
+
+    .status-message {
+        font-size: 1rem;
+        padding: 0.6rem;
+    }
+
+    .game-actions {
+        flex-direction: row;
+        margin-bottom: -5rem;
+    }
+
+    .game-actions button {
+        margin-bottom: var(--space-sm);
     }
 }
 
@@ -1014,71 +1083,7 @@ input[type="text"]::placeholder {
     }
 }
 
-/* Small Mobile */
-@media (max-width: 825px) {
-    main {
-        align-items: flex-start;
-    }
-
-    .game-header {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: var(--space-sm);
-        max-width: 100%;
-    }
-
-    .player-card {
-        flex: 1 1 45%;
-        width: auto;
-        padding: 0.6rem;
-        gap: var(--space-xs);
-    }
-
-    .player-token {
-        width: 30px;
-        height: 30px;
-    }
-
-    .player-name {
-        font-size: 0.9rem;
-        margin-bottom: 0.25rem;
-    }
-
-    .player-badge {
-        font-size: 0.7rem;
-        padding: 0.2rem 0.6rem;
-    }
-
-    #player-0 {
-        order: 1;
-    }
-
-    #player-1 {
-        order: 2;
-    }
-
-    .game-info-center {
-        order: 3;
-        flex: 1 1 100%;
-        padding: 0.75rem;
-    }
-
-    .status-message {
-        font-size: 1rem;
-        padding: 0.6rem;
-    }
-
-    .game-actions {
-        flex-direction: row;
-        margin-bottom: -5rem;
-    }
-
-    .game-actions button {
-        margin-bottom: var(--space-sm);
-    }
-}
-
-/* Very Small Mobile */
+/* Very small mobile */
 @media (max-width: 492px) {
     body {
         font-size: 0.9rem;
@@ -1163,7 +1168,7 @@ input[type="text"]::placeholder {
     }
 }
 
-/* Short Height Screens */
+/* Short height screens fixes */
 @media (max-height: 850px) {
     main {
         align-items: flex-start;
