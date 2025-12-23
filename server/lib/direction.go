@@ -1,3 +1,8 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Astrit Aslani astrit.aslani@gmail.com
+// Created: 05.12.2025
+
 package lib
 
 // Direction represents the 8 possible neighbor directions in the board graph

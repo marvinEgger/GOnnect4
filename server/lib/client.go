@@ -1,7 +1,8 @@
 // Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
 // SPDX-License-Identifier: Apache-2.0
 // Author:  Astrit Aslani astrit.aslani@gmail.com
-// Created: 05.12.2025
+// Created: 19.12.2025
+
 package lib
 
 import (
@@ -13,9 +14,10 @@ import (
 )
 
 const (
-	writeWait  = 10 * time.Second
-	pongWait   = 60 * time.Second
-	pingPeriod = (pongWait * 9) / 10
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	sendBufferSize = 256
 )
 
 // Client handles the websocket connection and implements lib.Sender
@@ -30,7 +32,7 @@ type Client struct {
 func NewClient(conn *websocket.Conn) *Client {
 	return &Client{
 		Conn:     conn,
-		SendChan: make(chan Message, 256),
+		SendChan: make(chan Message, sendBufferSize),
 	}
 }
 
@@ -39,9 +41,13 @@ func (c *Client) Send(msg Message) {
 	select {
 	case c.SendChan <- msg:
 	default:
-		// If channel is full, we might want to close connection or log warning
-		// For now, we just drop to avoid blocking, but in production we should handle this better
-		go c.Conn.Close(websocket.StatusPolicyViolation, "Connection too slow")
+		// Channel full - close connection to prevent server blocking
+		go func() {
+			err := c.Conn.Close(websocket.StatusPolicyViolation, "Connection too slow")
+			if err != nil {
+
+			}
+		}()
 	}
 }
 
@@ -50,7 +56,10 @@ func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close(websocket.StatusNormalClosure, "")
+		err := c.Conn.Close(websocket.StatusNormalClosure, "")
+		if err != nil {
+			return
+		}
 	}()
 
 	for {

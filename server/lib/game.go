@@ -106,7 +106,6 @@ func (game *Game) AddPlayer(player *Player) bool {
 	}
 
 	return false
-
 }
 
 // start begins the game when both players are ready
@@ -250,7 +249,7 @@ func (g *Game) RequestReplay(playerIdx int) bool {
 	return false
 }
 
-// swapBeginningPlayer chenges the turn order
+// swapBeginningPlayer changes the turn order
 func (g *Game) swapBeginningPlayer() {
 	g.Players[0], g.Players[1] = g.Players[1], g.Players[0]
 }

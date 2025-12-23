@@ -1,3 +1,8 @@
+// Copyright (c) 2025 Haute école d'ingénierie et d'architecture de Fribourg
+// SPDX-License-Identifier: Apache-2.0
+// Author:  Astrit Aslani astrit.aslani@gmail.com
+// Created: 05.12.2025
+
 package lib
 
 // MessageType identifies the type of websocket message
@@ -12,14 +17,12 @@ const (
 	MsgReplay           MessageType = "replay"
 	MsgForfeit          MessageType = "forfeit"
 	MsgLeaveLobby       MessageType = "leave_lobby"
-	MsgDisconnect       MessageType = "disconnect"
 	MsgJoinMatchmaking  MessageType = "join_matchmaking"
 	MsgLeaveMatchmaking MessageType = "leave_matchmaking"
 
 	// Server to Client
 	MsgWelcome              MessageType = "welcome"
 	MsgGameCreated          MessageType = "game_created"
-	MsgGameJoined           MessageType = "game_joined"
 	MsgGameStart            MessageType = "game_start"
 	MsgGameState            MessageType = "game_state"
 	MsgMove                 MessageType = "move"
@@ -27,7 +30,6 @@ const (
 	MsgReplayReq            MessageType = "replay_request"
 	MsgError                MessageType = "error"
 	MsgMatchmakingSearching MessageType = "matchmaking_searching"
-	MsgMatchFound           MessageType = "match_found"
 	MsgQueueUpdate          MessageType = "queue_update"
 )
 
@@ -57,14 +59,6 @@ type GameCreatedData struct {
 // JoinGameData contains game join request
 type JoinGameData struct {
 	Code string `json:"code"`
-}
-
-// GameJoinedData sent when successfully joined a game
-type GameJoinedData struct {
-	Code      string        `json:"code"`
-	PlayerIdx int           `json:"player_idx"`
-	Status    GameStatus    `json:"status"`
-	Players   [2]PlayerInfo `json:"players"`
 }
 
 // PlayerInfo contains public player information
