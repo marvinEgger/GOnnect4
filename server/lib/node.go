@@ -45,8 +45,8 @@ func (n *Node) SetOwner(player Cell) {
 	n.Owner = player
 }
 
-// CountSequence counts consecutive nodes with same owner in given direction
-func (n *Node) CountSequence(dir Direction) int {
+// countSequence counts consecutive nodes with same owner in given direction
+func (n *Node) countSequence(dir Direction) int {
 	if n.IsEmpty() {
 		return 0
 	}
@@ -70,22 +70,22 @@ func (n *Node) CheckWin(winLength int) bool {
 	}
 
 	// Check horizontal (left + right)
-	if 1+n.CountSequence(DirLeft)+n.CountSequence(DirRight) >= winLength {
+	if 1+n.countSequence(DirLeft)+n.countSequence(DirRight) >= winLength {
 		return true
 	}
 
 	// Check vertical (up + down)
-	if 1+n.CountSequence(DirUp)+n.CountSequence(DirDown) >= winLength {
+	if 1+n.countSequence(DirUp)+n.countSequence(DirDown) >= winLength {
 		return true
 	}
 
 	// Check diagonal down-left to up-right
-	if 1+n.CountSequence(DirUpRight)+n.CountSequence(DirDownLeft) >= winLength {
+	if 1+n.countSequence(DirUpRight)+n.countSequence(DirDownLeft) >= winLength {
 		return true
 	}
 
 	// Check diagonal up-left to down-right
-	if 1+n.CountSequence(DirUpLeft)+n.CountSequence(DirDownRight) >= winLength {
+	if 1+n.countSequence(DirUpLeft)+n.countSequence(DirDownRight) >= winLength {
 		return true
 	}
 
