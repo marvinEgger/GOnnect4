@@ -7,6 +7,81 @@ package lib
 
 import "testing"
 
+// TestAddPlayer_FirstPlayer tests adding first player
+func TestAddPlayer_FirstPlayer(t *testing.T) {
+	game := NewGame(0)
+	p1 := NewPlayer("Alice", 0)
+
+	ok := game.AddPlayer(p1)
+	if !ok {
+		t.Error("Adding first player should succeed")
+	}
+
+	if game.Players[0] != p1 {
+		t.Error("Player should be in slot 0")
+	}
+
+	if game.Status != StatusWaiting {
+		t.Error("Game should still be waiting for second player")
+	}
+}
+
+// TestAddPlayer_SecondPlayer tests that game starts when second player joins
+func TestAddPlayer_SecondPlayer(t *testing.T) {
+	game := NewGame(0)
+	p1 := NewPlayer("Alice", 0)
+	p2 := NewPlayer("Bob", 0)
+
+	game.AddPlayer(p1)
+	ok := game.AddPlayer(p2)
+
+	if !ok {
+		t.Error("Adding second player should succeed")
+	}
+
+	if game.Players[1] != p2 {
+		t.Error("Player should be in slot 1")
+	}
+
+	if game.Status != StatusPlaying {
+		t.Error("Game should start after second player joins")
+	}
+}
+
+// TestAddPlayer_GameFull tests that third player cannot join
+func TestAddPlayer_GameFull(t *testing.T) {
+	game := NewGame(0)
+	p1 := NewPlayer("Alice", 0)
+	p2 := NewPlayer("Bob", 0)
+	p3 := NewPlayer("Charlie", 0)
+
+	game.AddPlayer(p1)
+	game.AddPlayer(p2)
+	ok := game.AddPlayer(p3)
+
+	if ok {
+		t.Error("Adding third player should fail")
+	}
+}
+
+// TestAddPlayer_GameAlreadyPlaying tests adding player to active game
+func TestAddPlayer_GameAlreadyPlaying(t *testing.T) {
+	game := NewGame(0)
+	p1 := NewPlayer("Alice", 0)
+	p2 := NewPlayer("Bob", 0)
+	p3 := NewPlayer("Charlie", 0)
+
+	game.AddPlayer(p1)
+	game.AddPlayer(p2)
+
+	// Game is now playing
+	ok := game.AddPlayer(p3)
+
+	if ok {
+		t.Error("Cannot add player to active game")
+	}
+}
+
 // TestPlay_ValidMove tests a valid move
 func TestPlay_ValidMove(t *testing.T) {
 	game := NewGame(0)
