@@ -1,0 +1,32 @@
+name: Run Go Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main"]
+
+jobs:
+  test:
+    name: Test Library
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        cache-dependency-path: server/go.sum # helps caching if go.sum is inside server/
+
+    # 3. Get dependencies 
+    - name: Get dependencies
+      working-directory: ./server 
+      run: go mod download
+
+    # 4. Run the specific tests in lib
+    - name: Run Tests in server/lib
+      working-directory: ./server/lib
+      run: go test -v .
