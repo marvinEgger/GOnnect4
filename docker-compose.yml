@@ -1,5 +1,6 @@
 # Docker Compose configuration for production
 # Usage: docker compose up -d
+# Automatic deployment via GitHub Actions on tag push
 
 services:
   gonnect4:
@@ -16,18 +17,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: gonnect4-watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - WATCHTOWER_CLEANUP=true           # Remove old images
-      - WATCHTOWER_POLL_INTERVAL=300      # Check every 5 minutes (300 seconds)
-      - WATCHTOWER_LABEL_ENABLE=true      # Only update containers with the label
-      - WATCHTOWER_INCLUDE_RESTARTING=true
-    command: --debug

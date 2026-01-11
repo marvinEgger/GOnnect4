@@ -4,7 +4,7 @@ Online multiplayer Connect 4 game.
 
 Client-Server architecture with a server backend in Go and communication via WebSocket in a WebAssembly client (WASM) for the frontend.
 
-Let's try it on [gonnect4](https://gonnect4.ch/)
+Let's try it on [gonnect4.ch](https://gonnect4.ch/)
 
 ## Description
 
