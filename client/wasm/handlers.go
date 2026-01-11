@@ -75,9 +75,11 @@ func attachKeyPressListener(elementID string, handler func(js.Value, []js.Value)
 	if !element.IsNull() {
 		fn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			event := args[0]
-			if event.Get("key").String() == "Enter" {
+			key := event.Get("key").String()
+			if key == "Enter" {
 				event.Call("preventDefault") // Prevent form submission
-				handler(this, args)
+				event.Call("stopPropagation") // Stop event bubbling
+				handler(element, args) // Pass element instead of this for consistency
 			}
 			return nil
 		})

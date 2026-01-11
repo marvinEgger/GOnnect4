@@ -31,7 +31,7 @@ func (srv *Server) handleLogin(client *lib.Client, data lib.LoginData) {
 			for code, g := range srv.gamesByCode {
 				if g.HasPlayer(player.ID) {
 					game = g
-					client.GameCode = code
+					client.SetGameCode(code)
 					break
 				}
 			}
@@ -77,7 +77,7 @@ func (srv *Server) handleLogin(client *lib.Client, data lib.LoginData) {
 				// If opponent is disconnected, don't send game state (return to lobby)
 				if !opponent.IsConnected() {
 					shouldSendGameState = false
-					client.GameCode = ""
+					client.SetGameCode("")
 				}
 			}
 		}
@@ -111,7 +111,7 @@ func (srv *Server) handleCreateGame(client *lib.Client) {
 	game.TimerCallback = srv.handleTimeout
 	game.AddPlayer(player)
 	srv.gamesByCode[game.Code] = game
-	client.GameCode = game.Code
+	client.SetGameCode(game.Code)
 
 	// Notify player of game creation
 	player.Send(lib.Message{
@@ -149,7 +149,7 @@ func (srv *Server) handleJoinGame(client *lib.Client, data lib.JoinGameData) {
 
 	// Handle reconnection (player already in this game)
 	if game.HasPlayer(player.ID) {
-		client.GameCode = game.Code
+		client.SetGameCode(game.Code)
 		srv.sendGameState(player, game)
 		srv.broadcastToGame(game, lib.Message{
 			Type: lib.MsgGameState,
@@ -164,7 +164,7 @@ func (srv *Server) handleJoinGame(client *lib.Client, data lib.JoinGameData) {
 		return
 	}
 
-	client.GameCode = game.Code
+	client.SetGameCode(game.Code)
 
 	// Notify both players that game is starting
 	srv.broadcastToGame(game, lib.Message{
@@ -298,12 +298,12 @@ func (srv *Server) handleLeaveLobby(client *lib.Client) {
 	defer srv.mu.Unlock()
 
 	// Clean up player's current game if any
-	if client.GameCode != "" {
-		if game, exists := srv.gamesByCode[client.GameCode]; exists {
+	if client.GetGameCode() != "" {
+		if game, exists := srv.gamesByCode[client.GetGameCode()]; exists {
 			// Waiting game: delete it (player was alone waiting for opponent)
 			if game.GetStatus() == lib.StatusWaiting {
 				game.Cleanup()
-				delete(srv.gamesByCode, client.GameCode)
+				delete(srv.gamesByCode, client.GetGameCode())
 				// Active game: forfeit (opponent wins)
 			} else if game.GetStatus() == lib.StatusPlaying {
 				playerIdx := game.GetPlayerIndex(client.PlayerID)
@@ -322,7 +322,7 @@ func (srv *Server) handleLeaveLobby(client *lib.Client) {
 	}
 
 	// Clear player's game code
-	client.GameCode = ""
+	client.SetGameCode("")
 
 	// Send welcome message to return player to lobby
 	player := srv.lobby[client.PlayerID]

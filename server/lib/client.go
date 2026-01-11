@@ -7,6 +7,7 @@ package lib
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/coder/websocket"
@@ -22,10 +23,25 @@ const (
 
 // Client handles the websocket connection and implements lib.Sender
 type Client struct {
+	mu       sync.RWMutex
 	Conn     *websocket.Conn
 	SendChan chan Message
 	PlayerID PlayerID
-	GameCode string
+	gameCode string
+}
+
+// GetGameCode returns the game code safely
+func (c *Client) GetGameCode() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.gameCode
+}
+
+// SetGameCode sets the game code safely
+func (c *Client) SetGameCode(code string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.gameCode = code
 }
 
 // NewClient creates a new client

@@ -86,8 +86,8 @@ func (srv *Server) sendError(client *lib.Client, err error) {
 // findGameForClient finds and caches the game for a client
 func (srv *Server) findGameForClient(client *lib.Client) *lib.Game {
 	// Try cached game code first
-	if client.GameCode != "" {
-		if game, exists := srv.gamesByCode[client.GameCode]; exists {
+	if client.GetGameCode() != "" {
+		if game, exists := srv.gamesByCode[client.GetGameCode()]; exists {
 			return game
 		}
 	}
@@ -95,7 +95,7 @@ func (srv *Server) findGameForClient(client *lib.Client) *lib.Game {
 	// Search all games for this player
 	for code, game := range srv.gamesByCode {
 		if game.HasPlayer(client.PlayerID) {
-			client.GameCode = code
+			client.SetGameCode(code)
 			return game
 		}
 	}
@@ -132,7 +132,7 @@ func (srv *Server) buildGameState(game *lib.Game, playerID lib.PlayerID) lib.Gam
 func (srv *Server) broadcastToGame(game *lib.Game, msg lib.Message) {
 	players := game.GetPlayers()
 	for _, p := range players {
-		if p != nil {
+		if p != nil && p.IsConnected() {
 			p.Send(msg)
 		}
 	}
@@ -147,8 +147,8 @@ func (srv *Server) handleTimeout(gameCode string, loserIdx int) {
 	// Find game
 	game, exists := srv.gamesByCode[gameCode]
 
-	// Check if game exist, might have been deleted already
-	if !exists {
+	// Check if game exists and is still playing (might have been deleted or finished)
+	if !exists || game.GetStatus() != lib.StatusPlaying {
 		return
 	}
 
