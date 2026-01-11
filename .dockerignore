@@ -1,0 +1,38 @@
+# Git
+.git
+.github
+.gitignore
+
+# Build outputs (will be rebuilt in container)
+server/dist
+client/dist
+
+# Linter config (not needed in container)
+.golangci.yml
+
+# Documentation (not needed in runtime image)
+*.md
+!README.md
+
+# Docker files (not needed in image)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test files (not needed in runtime)
+*_test.go
+
+# Scripts (not needed in runtime image, built binaries are copied)
+scripts/
