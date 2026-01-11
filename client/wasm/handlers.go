@@ -26,41 +26,41 @@ const (
 // setupEventListeners attaches all UI event listeners
 func setupEventListeners() {
 	// Login screen
-	attachEventListener("connect-btn", "click", handleConnect)
+	attachEventListener("connect-btn", handleConnect)
 	attachKeyPressListener("username-input", handleConnect)
 
 	// Lobby - mode selection
-	attachEventListener("friend-mode-btn", "click", handleFriendMode)
-	attachEventListener("matchmaking-btn", "click", handleMatchmakingMode)
-	attachEventListener("back-to-modes-btn", "click", handleBackToModes)
-	attachEventListener("back-to-modes-matchmaking-btn", "click", handleBackToModes)
-	attachEventListener("logout-btn-header", "click", handleLogout)
+	attachEventListener("friend-mode-btn", handleFriendMode)
+	attachEventListener("matchmaking-btn", handleMatchmakingMode)
+	attachEventListener("back-to-modes-btn", handleBackToModes)
+	attachEventListener("back-to-modes-matchmaking-btn", handleBackToModes)
+	attachEventListener("logout-btn-header", handleLogout)
 
 	// Friend mode
-	attachEventListener("create-game-btn", "click", handleCreateGame)
-	attachEventListener("join-game-btn", "click", handleJoinGame)
+	attachEventListener("create-game-btn", handleCreateGame)
+	attachEventListener("join-game-btn", handleJoinGame)
 	attachKeyPressListener("join-code-input", handleJoinGame)
-	attachEventListener("copy-code-btn", "click", handleCopyCode)
+	attachEventListener("copy-code-btn", handleCopyCode)
 
 	// Matchmaking mode
-	attachEventListener("cancel-matchmaking-btn", "click", handleCancelMatchmaking)
+	attachEventListener("cancel-matchmaking-btn", handleCancelMatchmaking)
 
 	// Game screen
-	attachEventListener("copy-code-game-btn", "click", handleCopyGameCode)
-	attachEventListener("replay-btn", "click", handleReplay)
-	attachEventListener("forfeit-btn", "click", handleForfeit)
-	attachEventListener("back-to-lobby-btn", "click", handleBackToLobby)
-	attachEventListener("cancel-game-btn", "click", handleCancelGame)
+	attachEventListener("copy-code-game-btn", handleCopyGameCode)
+	attachEventListener("replay-btn", handleReplay)
+	attachEventListener("forfeit-btn", handleForfeit)
+	attachEventListener("back-to-lobby-btn", handleBackToLobby)
+	attachEventListener("cancel-game-btn", handleCancelGame)
 
 	// Board interactions
 	setupBoardListeners()
 }
 
 // attachEventListener attaches a simple event listener
-func attachEventListener(elementID, eventType string, handler func(js.Value, []js.Value) interface{}) {
+func attachEventListener(elementID string, handler func(js.Value, []js.Value) interface{}) {
 	element := lib.GetElement(elementID)
 	if !element.IsNull() {
-		element.Call("addEventListener", eventType, js.FuncOf(handler))
+		element.Call("addEventListener", js.FuncOf(handler))
 	}
 }
 
@@ -85,7 +85,7 @@ func setupBoardListeners() {
 		return
 	}
 
-	canvas.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	canvas.Call("addEventListener", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		lib.HandleClick(args[0])
 		return nil
 	}))
@@ -329,7 +329,7 @@ func handleMessage(msg lib.Message) {
 	case "replay_request":
 		handleReplayRequest(msg.Data)
 	case "matchmaking_searching":
-		handleMatchmakingSearching(msg.Data)
+		handleMatchmakingSearching()
 	case "queue_update":
 		handleQueueUpdate(msg.Data)
 	case "error":
@@ -520,7 +520,7 @@ func handleReplayRequest(data interface{}) {
 }
 
 // handleMatchmakingSearching confirms matchmaking search started
-func handleMatchmakingSearching(data interface{}) {
+func handleMatchmakingSearching() {
 	lib.Console("handleMatchmakingSearching: processing")
 }
 
