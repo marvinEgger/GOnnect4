@@ -61,9 +61,30 @@ func (srv *Server) handleLogin(client *lib.Client, data lib.LoginData) {
 		},
 	})
 
-	// If reconnecting to a game, send game state
+	// If reconnecting to a game, check if it's still valid
 	if game != nil {
-		srv.sendGameState(player, game)
+		shouldSendGameState := true
+
+		// If game is finished, check if opponent is still connected
+		if game.GetStatus() == lib.StatusFinished {
+			players := game.GetPlayers()
+			opponentIdx := 1 - game.GetPlayerIndex(player.ID)
+
+			// If opponent exists and check connection
+			if opponentIdx >= 0 && opponentIdx < 2 && players[opponentIdx] != nil {
+				opponent := players[opponentIdx]
+
+				// If opponent is disconnected, don't send game state (return to lobby)
+				if !opponent.IsConnected() {
+					shouldSendGameState = false
+					client.GameCode = ""
+				}
+			}
+		}
+
+		if shouldSendGameState {
+			srv.sendGameState(player, game)
+		}
 	}
 }
 

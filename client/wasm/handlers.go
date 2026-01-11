@@ -23,6 +23,9 @@ const (
 	errorMessageDisplayTime = 5 * time.Second
 )
 
+// Global slice to store js.Func for proper cleanup
+var eventListeners []js.Func
+
 // setupEventListeners attaches all UI event listeners
 func setupEventListeners() {
 	// Login screen
@@ -60,7 +63,9 @@ func setupEventListeners() {
 func attachEventListener(elementID string, handler func(js.Value, []js.Value) interface{}) {
 	element := lib.GetElement(elementID)
 	if !element.IsNull() {
-		element.Call("addEventListener", js.FuncOf(handler))
+		fn := js.FuncOf(handler)
+		eventListeners = append(eventListeners, fn)
+		element.Call("addEventListener", "click", fn)
 	}
 }
 
@@ -68,13 +73,15 @@ func attachEventListener(elementID string, handler func(js.Value, []js.Value) in
 func attachKeyPressListener(elementID string, handler func(js.Value, []js.Value) interface{}) {
 	element := lib.GetElement(elementID)
 	if !element.IsNull() {
-		element.Call("addEventListener", "keypress", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		fn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			event := args[0]
 			if event.Get("key").String() == "Enter" {
 				handler(this, args)
 			}
 			return nil
-		}))
+		})
+		eventListeners = append(eventListeners, fn)
+		element.Call("addEventListener", "keypress", fn)
 	}
 }
 
@@ -85,20 +92,39 @@ func setupBoardListeners() {
 		return
 	}
 
-	canvas.Call("addEventListener", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	clickFn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		lib.HandleClick(args[0])
 		return nil
-	}))
+	})
+	eventListeners = append(eventListeners, clickFn)
+	canvas.Call("addEventListener", "click", clickFn)
 
-	canvas.Call("addEventListener", "mousemove", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	moveFn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		lib.HandleHover(args[0])
 		return nil
-	}))
+	})
+	eventListeners = append(eventListeners, moveFn)
+	canvas.Call("addEventListener", "mousemove", moveFn)
 
-	canvas.Call("addEventListener", "mouseleave", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	leaveFn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		lib.HandleLeave(args[0])
 		return nil
-	}))
+	})
+	eventListeners = append(eventListeners, leaveFn)
+	canvas.Call("addEventListener", "mouseleave", leaveFn)
+}
+
+// cleanupEventListeners releases all js.Func to prevent memory leaks
+func cleanupEventListeners() {
+	for _, fn := range eventListeners {
+		fn.Release()
+	}
+	eventListeners = nil
+}
+
+// registerJsFunc stores a js.Func for later cleanup
+func registerJsFunc(fn js.Func) {
+	eventListeners = append(eventListeners, fn)
 }
 
 // ============================================================================
@@ -200,6 +226,9 @@ func handleCancelGame(this js.Value, args []js.Value) interface{} {
 
 // handleLogout logs out the current user
 func handleLogout(this js.Value, args []js.Value) interface{} {
+	// Clean up event listeners to prevent memory leaks
+	cleanupEventListeners()
+
 	lib.RemoveLocalStorage("playerID")
 	lib.RemoveLocalStorage("username")
 
@@ -214,6 +243,10 @@ func handleLogout(this js.Value, args []js.Value) interface{} {
 	lib.SetValue("username-input", "")
 	lib.Hide("header-user-info")
 	lib.ShowScreen("login")
+
+	// Re-setup event listeners and global functions for next login
+	setupEventListeners()
+	setupGlobalFunctions()
 
 	return nil
 }

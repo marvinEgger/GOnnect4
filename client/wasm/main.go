@@ -28,7 +28,7 @@ func main() {
 
 // setupGlobalFunctions exposes Go functions to JavaScript
 func setupGlobalFunctions() {
-	js.Global().Set("playColumn", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	playColumnFn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if len(args) > 0 {
 			column := args[0].Int()
 			lib.SendMessage("play", map[string]interface{}{
@@ -36,7 +36,9 @@ func setupGlobalFunctions() {
 			})
 		}
 		return nil
-	}))
+	})
+	registerJsFunc(playColumnFn)
+	js.Global().Set("playColumn", playColumnFn)
 }
 
 // attemptAutoConnect tries to reconnect with saved credentials
