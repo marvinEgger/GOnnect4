@@ -1,9 +1,11 @@
 # Docker Compose configuration for local development
-# Usage: docker compose -f docker-compose.dev.yml up
+# Usage: docker compose -f docker-compose.dev.yml up --build
 
 services:
   gonnect4:
-    image: ghcr.io/marvinegger/gonnect4:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: gonnect4-dev
     ports:
       - "8080:8080"
