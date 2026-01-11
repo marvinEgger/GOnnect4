@@ -28,14 +28,14 @@ jobs:
         cache: false
 
     - name: Lint Server Code
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v8
       with:
         version: latest
         working-directory: server
         args: --timeout=5m
 
     - name: Lint Client WASM Code
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v8
       with:
         version: latest
         working-directory: client/wasm

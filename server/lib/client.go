@@ -43,10 +43,7 @@ func (c *Client) Send(msg Message) {
 	default:
 		// Channel full - close connection to prevent server blocking
 		go func() {
-			err := c.Conn.Close(websocket.StatusPolicyViolation, "Connection too slow")
-			if err != nil {
-
-			}
+			_ = c.Conn.Close(websocket.StatusPolicyViolation, "Connection too slow")
 		}()
 	}
 }
@@ -66,7 +63,7 @@ func (c *Client) WritePump() {
 		select {
 		case msg, ok := <-c.SendChan:
 			if !ok {
-				c.Conn.Close(websocket.StatusNormalClosure, "Channel closed")
+				_ = c.Conn.Close(websocket.StatusNormalClosure, "Channel closed")
 				return
 			}
 

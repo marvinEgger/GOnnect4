@@ -202,16 +202,34 @@ func TestPlay_WinDetection(t *testing.T) {
 	// P0 plays: 0, 1, 2, 3
 	// P1 plays: 0, 1, 2 (blocking attempts but in different rows)
 
-	game.Play(0, 0) // P0 at (5,0)
-	game.Play(1, 0) // P1 at (4,0)
-	game.Play(0, 1) // P0 at (5,1)
-	game.Play(1, 1) // P1 at (4,1)
-	game.Play(0, 2) // P0 at (5,2)
-	game.Play(1, 2) // P1 at (4,2)
-	err := game.Play(0, 3) // P0 at (5,3) - WINS
+	err50 := game.Play(0, 0) // P0 at (5,0)
+	if err50 != nil {
+		t.Error("Error on playing P0 at (5,0)")
+	}
+	err40 := game.Play(1, 0) // P1 at (4,0)
+	if err40 != nil {
+		t.Error("Error on playing P1 at (4,0)")
+	}
+	err51 := game.Play(0, 1) // P0 at (5,1)
+	if err51 != nil {
+		t.Error("Error on playing P0 at (5,1)")
+	}
+	err41 := game.Play(1, 1) // P1 at (4,1)
+	if err41 != nil {
+		t.Error("Error on playing P1 at (4,1)")
+	}
+	err52 := game.Play(0, 2) // P0 at (5,2)
+	if err52 != nil {
+		t.Error("Error on playing P0 at (5,2)")
+	}
+	err42 := game.Play(1, 2) // P1 at (4,2)
+	if err42 != nil {
+		t.Error("Error on playing P1 at (4,2)")
+	}
 
+	err := game.Play(0, 3) // P0 at (5,3) - WINS
 	if err != nil {
-		t.Errorf("Win move should not error: %v", err)
+		t.Errorf("Win move should not error on position (5,3) for P0: %v", err)
 	}
 
 	if game.Status != StatusFinished {
@@ -234,7 +252,10 @@ func TestPlay_TurnSwitching(t *testing.T) {
 	firstTurn := game.CurrentTurn
 
 	// Play one move
-	game.Play(firstTurn, 0)
+	errFirstMove := game.Play(firstTurn, 0)
+	if errFirstMove != nil {
+		t.Error("Error on playing the first move")
+	}
 
 	if game.CurrentTurn == firstTurn {
 		t.Error("Turn should have switched")
@@ -246,7 +267,10 @@ func TestPlay_TurnSwitching(t *testing.T) {
 	}
 
 	// Play another move
-	game.Play(secondTurn, 1)
+	errSecondMove := game.Play(secondTurn, 1)
+	if errSecondMove != nil {
+		t.Error("Error on playing the second move")
+	}
 
 	if game.CurrentTurn != firstTurn {
 		t.Error("Turn should have switched back")
@@ -262,7 +286,10 @@ func TestPlay_LastMoveTracking(t *testing.T) {
 	game.AddPlayer(p2)
 
 	// Play in column 3
-	game.Play(game.CurrentTurn, 3)
+	err := game.Play(game.CurrentTurn, 3)
+	if err != nil {
+		t.Fatalf("Play() returned error: %v", err)
+	}
 
 	if game.LastMove == nil {
 		t.Fatal("LastMove should be set")

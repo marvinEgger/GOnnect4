@@ -8,11 +8,11 @@ package lib
 import "testing"
 
 // createHorizontalChain creates nodes linked horizontally
-func createHorizontalChain(length int, owner Cell) []*Node {
+func createHorizontalChain(length int) []*Node {
 	nodes := make([]*Node, length)
 	for i := 0; i < length; i++ {
 		nodes[i] = NewNode(0, i)
-		nodes[i].SetOwner(owner)
+		nodes[i].SetOwner(CellPlayer0) // Test with the same player
 	}
 
 	// Link horizontally
@@ -73,7 +73,7 @@ func createDiagonalDownRightChain(length int, owner Cell) []*Node {
 
 // TestCheckWin_Horizontal tests horizontal wins
 func TestCheckWin_Horizontal(t *testing.T) {
-	nodes := createHorizontalChain(4, CellPlayer0)
+	nodes := createHorizontalChain(4)
 
 	// All nodes should detect win
 	for i, node := range nodes {
@@ -85,7 +85,7 @@ func TestCheckWin_Horizontal(t *testing.T) {
 
 // TestCheckWin_HorizontalNoWin tests horizontal with only 3 (not enough)
 func TestCheckWin_HorizontalNoWin(t *testing.T) {
-	nodes := createHorizontalChain(3, CellPlayer0)
+	nodes := createHorizontalChain(3)
 
 	// None should detect win
 	for i, node := range nodes {
@@ -154,7 +154,7 @@ func TestCheckWin_EmptyNode(t *testing.T) {
 
 // TestCheckWin_DifferentOwners tests broken sequence by different owner
 func TestCheckWin_DifferentOwners(t *testing.T) {
-	nodes := createHorizontalChain(4, CellPlayer0)
+	nodes := createHorizontalChain(4)
 
 	// Break sequence by changing middle node owner
 	nodes[2].SetOwner(CellPlayer1)
@@ -169,7 +169,7 @@ func TestCheckWin_DifferentOwners(t *testing.T) {
 
 // TestCheckWin_ExactlyFour tests that 5 in a row also wins
 func TestCheckWin_ExactlyFour(t *testing.T) {
-	nodes := createHorizontalChain(5, CellPlayer0)
+	nodes := createHorizontalChain(5)
 
 	// All should win (have at least 4)
 	for i := 0; i < 5; i++ {

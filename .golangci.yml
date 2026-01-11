@@ -6,16 +6,6 @@ version: 2
 run:
   timeout: 5m
 
-  # Skip generated / build outputs
-  skip-dirs:
-    - vendor
-    - dist
-    - client/dist
-
-  # Skip generated files
-  skip-files:
-    - ".*\\.pb\\.go$"
-
 linters:
   disable-all: true
   enable:
@@ -42,9 +32,19 @@ issues:
   max-issues-per-linter: 0
   max-same-issues: 0
 
+  # Skip generated / build outputs
+  exclude-dirs:
+    - vendor
+    - dist
+    - client/dist
+
+  # Skip generated files
+  exclude-files:
+    - ".*\\.pb\\.go$"
+
   # Loosen rules for tests
   exclude-rules:
-    - path: _test\.go
+    - path: ".*_test\\.go$"
       linters:
         - errcheck
         - unparam
