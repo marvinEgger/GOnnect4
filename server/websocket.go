@@ -59,8 +59,6 @@ func (srv *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				srv.broadcastQueueUpdate()
 			}
 		}
-		// Clean up any stale games or disconnected players
-		srv.cleanupStaleGames()
 		srv.mu.Unlock()
 
 		// Close WebSocket connection and stop write pump of client

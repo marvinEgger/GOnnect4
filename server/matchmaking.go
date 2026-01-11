@@ -24,6 +24,9 @@ func (srv *Server) handleJoinMatchmaking(client *lib.Client) {
 		return
 	}
 
+	// Clean up any finished games player is still in
+	srv.cleanupPlayerFinishedGames(client.PlayerID)
+
 	// Check if already in queue
 	for _, pid := range srv.matchmakingQueue {
 		if pid == client.PlayerID {
@@ -96,6 +99,10 @@ func (srv *Server) tryMatchPlayers() {
 		srv.broadcastQueueUpdate()
 		return
 	}
+
+	// Clean up any finished games both players are still in
+	srv.cleanupPlayerFinishedGames(player1ID)
+	srv.cleanupPlayerFinishedGames(player2ID)
 
 	// Create game
 	game := lib.NewGame(initialClockDuration)

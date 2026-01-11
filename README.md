@@ -29,7 +29,7 @@ GOnnect4 is an online Connect 4 game allowing two players to compete in real-tim
 
 ```bash
 # Start (uses docker-compose.dev.yml)
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d --build
 
 # View logs
 docker compose -f docker-compose.dev.yml logs -f

@@ -57,3 +57,27 @@ func (srv *Server) findActiveGameForPlayer(playerID lib.PlayerID) *lib.Game {
 	}
 	return nil
 }
+
+// deleteGame cleans up a game and removes it from the server
+func (srv *Server) deleteGame(code string) {
+	if game, exists := srv.gamesByCode[code]; exists {
+		game.Cleanup()
+		delete(srv.gamesByCode, code)
+	}
+}
+
+// cleanupPlayerFinishedGames removes player from all finished games they're in
+// This prevents players from being stuck in old finished games when joining new games
+func (srv *Server) cleanupPlayerFinishedGames(playerID lib.PlayerID) {
+	for code, game := range srv.gamesByCode {
+		if game.GetStatus() == lib.StatusFinished && game.HasPlayer(playerID) {
+			game.RemovePlayer(playerID)
+
+			// If both players are gone, cleanup the game
+			players := game.GetPlayers()
+			if players[0] == nil && players[1] == nil {
+				srv.deleteGame(code)
+			}
+		}
+	}
+}

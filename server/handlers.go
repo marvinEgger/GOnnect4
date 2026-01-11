@@ -27,12 +27,18 @@ func (srv *Server) handleLogin(client *lib.Client, data lib.LoginData) {
 			player = p
 			player.Username = data.Username
 
-			// Check if player is in a game
+			// Clean up any finished games player is still in from previous session
+			srv.cleanupPlayerFinishedGames(player.ID)
+
+			// Check if player is in an ACTIVE game (waiting or playing only)
 			for code, g := range srv.gamesByCode {
 				if g.HasPlayer(player.ID) {
-					game = g
-					client.SetGameCode(code)
-					break
+					status := g.GetStatus()
+					if status == lib.StatusWaiting || status == lib.StatusPlaying {
+						game = g
+						client.SetGameCode(code)
+						break
+					}
 				}
 			}
 		} else {
@@ -65,30 +71,9 @@ func (srv *Server) handleLogin(client *lib.Client, data lib.LoginData) {
 		},
 	})
 
-	// If reconnecting to a game, check if it's still valid
+	// If reconnecting to an active game, send game state
 	if game != nil {
-		shouldSendGameState := true
-
-		// If game is finished, check if opponent is still connected
-		if game.GetStatus() == lib.StatusFinished {
-			players := game.GetPlayers()
-			opponentIdx := 1 - game.GetPlayerIndex(player.ID)
-
-			// If opponent exists and check connection
-			if opponentIdx >= 0 && opponentIdx < 2 && players[opponentIdx] != nil {
-				opponent := players[opponentIdx]
-
-				// If opponent is disconnected, don't send game state (return to lobby)
-				if !opponent.IsConnected() {
-					shouldSendGameState = false
-					client.SetGameCode("")
-				}
-			}
-		}
-
-		if shouldSendGameState {
-			srv.sendGameState(player, game)
-		}
+		srv.sendGameState(player, game)
 	}
 }
 
@@ -103,6 +88,9 @@ func (srv *Server) handleCreateGame(client *lib.Client) {
 		srv.sendError(client, lib.ErrPlayerNotFound)
 		return
 	}
+
+	// Clean up any finished games player is still in
+	srv.cleanupPlayerFinishedGames(client.PlayerID)
 
 	// Check if player is already in an active game (scan all games)
 	if activeGame := srv.findActiveGameForPlayer(client.PlayerID); activeGame != nil {
@@ -150,6 +138,9 @@ func (srv *Server) handleJoinGame(client *lib.Client, data lib.JoinGameData) {
 		srv.sendError(client, lib.ErrPlayerNotFound)
 		return
 	}
+
+	// Clean up any finished games player is still in (except this one)
+	srv.cleanupPlayerFinishedGames(client.PlayerID)
 
 	// Handle reconnection (player already in this game)
 	if game.HasPlayer(player.ID) {
@@ -292,8 +283,7 @@ func (srv *Server) handleForfeit(client *lib.Client) {
 
 	// Handle waiting games differently
 	if game.GetStatus() == lib.StatusWaiting {
-		game.Cleanup()
-		delete(srv.gamesByCode, client.GetGameCode())
+		srv.deleteGame(client.GetGameCode())
 		client.SetGameCode("")
 		return
 	}
@@ -320,9 +310,8 @@ func (srv *Server) handleLeaveLobby(client *lib.Client) {
 		if game, exists := srv.gamesByCode[client.GetGameCode()]; exists {
 			// Waiting game: delete it (player was alone waiting for opponent)
 			if game.GetStatus() == lib.StatusWaiting {
-				game.Cleanup()
-				delete(srv.gamesByCode, client.GetGameCode())
 				// Active game: forfeit (opponent wins)
+			srv.deleteGame(client.GetGameCode())
 			} else if game.GetStatus() == lib.StatusPlaying {
 				playerIdx := game.GetPlayerIndex(client.PlayerID)
 				if playerIdx >= 0 {
@@ -338,18 +327,17 @@ func (srv *Server) handleLeaveLobby(client *lib.Client) {
 				// Finished game: player is leaving after game over
 			} else if game.GetStatus() == lib.StatusFinished {
 				// Check if both players have left
-				players := game.GetPlayers()
-				playerIdx := game.GetPlayerIndex(client.PlayerID)
+			playerIdx := game.GetPlayerIndex(client.PlayerID)
 
-				if playerIdx >= 0 && playerIdx < 2 {
-					// Mark this player as left (remove from game)
-					players[playerIdx] = nil
+				if playerIdx >= 0 {
+					// Remove player from game
+					game.RemovePlayer(client.PlayerID)
 
 					// If both players have left or only disconnected opponent remains, cleanup game
+					players := game.GetPlayers()
 					opponentIdx := 1 - playerIdx
 					if players[opponentIdx] == nil || !players[opponentIdx].IsConnected() {
-						game.Cleanup()
-						delete(srv.gamesByCode, client.GetGameCode())
+						srv.deleteGame(client.GetGameCode())
 					}
 				}
 			}

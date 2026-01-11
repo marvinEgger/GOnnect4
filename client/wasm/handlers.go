@@ -437,6 +437,14 @@ func handleWelcome(data interface{}) {
 	lib.SetText("header-username", welcome.Username)
 	lib.ShowFlex("header-user-info")
 
+	// Clean up any previous game state
+	lib.Stop()
+	state.ResetBoard()
+	state.ClearHover()
+	state.SetGameFinished(false)
+	state.SetReplayRequested(false)
+	state.SetOpponentRequestedReplay(false)
+
 	resetLobby()
 	lib.Show("mode-selection")
 	lib.Hide("friend-mode-panel")

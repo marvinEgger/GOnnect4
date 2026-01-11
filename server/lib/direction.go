@@ -25,18 +25,3 @@ const dirCount = 8
 func (d Direction) Opposite() Direction {
 	return (d + 4) % dirCount
 }
-
-// IsVertical checks if direction is vertical (up or down)
-func (d Direction) IsVertical() bool {
-	return d == DirUp || d == DirDown
-}
-
-// IsHorizontal checks if direction is horizontal (left or right)
-func (d Direction) IsHorizontal() bool {
-	return d == DirLeft || d == DirRight
-}
-
-// IsDiagonal checks if direction is diagonal
-func (d Direction) IsDiagonal() bool {
-	return !d.IsVertical() && !d.IsHorizontal()
-}

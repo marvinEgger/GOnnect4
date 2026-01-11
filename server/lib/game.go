@@ -330,13 +330,7 @@ func (g *Game) GetTimeRemaining() [2]time.Duration {
 func (g *Game) GetPlayerIndex(id PlayerID) int {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-
-	for i, p := range g.Players {
-		if p != nil && p.ID == id {
-			return i
-		}
-	}
-	return -1
+	return g.getPlayerIndexLocked(id)
 }
 
 // GetPlayers returns the players in the game safely
@@ -344,6 +338,30 @@ func (g *Game) GetPlayers() [2]*Player {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return g.Players
+}
+
+// RemovePlayer removes a player from the game (for cleanup when leaving)
+func (g *Game) RemovePlayer(id PlayerID) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	idx := g.getPlayerIndexLocked(id)
+	if idx < 0 {
+		return false
+	}
+
+	g.Players[idx] = nil
+	return true
+}
+
+// getPlayerIndexLocked returns player index - MUST be called with lock held
+func (g *Game) getPlayerIndexLocked(id PlayerID) int {
+	for i, p := range g.Players {
+		if p != nil && p.ID == id {
+			return i
+		}
+	}
+	return -1
 }
 
 // GetStatus returns the current game status
@@ -356,13 +374,6 @@ func (g *Game) GetStatus() GameStatus {
 // HasPlayer checks if a player is in this game
 func (g *Game) HasPlayer(id PlayerID) bool {
 	return g.GetPlayerIndex(id) >= 0
-}
-
-// IsFull checks if the game has 2 players
-func (g *Game) IsFull() bool {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.Players[0] != nil && g.Players[1] != nil
 }
 
 // randomCode generates a random alphanumeric code

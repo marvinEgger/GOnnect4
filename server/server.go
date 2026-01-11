@@ -225,9 +225,7 @@ func (srv *Server) cleanupStaleGames() {
 		}
 
 		if shouldDelete {
-			// Stop timers and free resources
-			game.Cleanup()
-			delete(srv.gamesByCode, code)
+			srv.deleteGame(code)
 		}
 	}
 
