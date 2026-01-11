@@ -31,13 +31,12 @@ var activeTimers []*time.Timer
 var timersMu sync.Mutex
 
 // scheduleTimer adds a timer and tracks it for cleanup
-func scheduleTimer(d time.Duration, fn func()) *time.Timer {
+func scheduleTimer(d time.Duration, fn func()) {
 	timersMu.Lock()
 	defer timersMu.Unlock()
 
 	timer := time.AfterFunc(d, fn)
 	activeTimers = append(activeTimers, timer)
-	return timer
 }
 
 // cancelAllTimers stops and clears all active timers
@@ -102,9 +101,9 @@ func attachKeyPressListener(elementID string, handler func(js.Value, []js.Value)
 			event := args[0]
 			key := event.Get("key").String()
 			if key == "Enter" {
-				event.Call("preventDefault") // Prevent form submission
+				event.Call("preventDefault")  // Prevent form submission
 				event.Call("stopPropagation") // Stop event bubbling
-				handler(element, args) // Pass element instead of this for consistency
+				handler(element, args)        // Pass element instead of this for consistency
 			}
 			return nil
 		})
