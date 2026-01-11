@@ -46,10 +46,19 @@ func attemptAutoConnect() {
 	savedPlayerID := lib.GetLocalStorage("playerID")
 	savedUsername := lib.GetLocalStorage("username")
 
-	if savedPlayerID != "" && savedUsername != "" {
+	// Bug #23 fix: Validate localStorage values before using them
+	// Check for non-empty strings and basic format validation
+	if savedPlayerID != "" && savedUsername != "" &&
+		len(savedPlayerID) > 0 && len(savedPlayerID) < 100 &&
+		len(savedUsername) > 0 && len(savedUsername) < 50 {
 		lib.Console("Auto-connecting...")
 		autoConnect(savedUsername, savedPlayerID)
 	} else {
+		if savedPlayerID != "" || savedUsername != "" {
+			// Invalid credentials in storage, clear them
+			lib.RemoveLocalStorage("playerID")
+			lib.RemoveLocalStorage("username")
+		}
 		lib.Console("No saved credentials, showing login screen")
 		lib.ShowScreen("login")
 	}

@@ -26,6 +26,31 @@ const (
 // Global slice to store js.Func for proper cleanup
 var eventListeners []js.Func
 
+// Global slice to store active timers for cleanup
+var activeTimers []*time.Timer
+var timersMu sync.Mutex
+
+// scheduleTimer adds a timer and tracks it for cleanup
+func scheduleTimer(d time.Duration, fn func()) *time.Timer {
+	timersMu.Lock()
+	defer timersMu.Unlock()
+
+	timer := time.AfterFunc(d, fn)
+	activeTimers = append(activeTimers, timer)
+	return timer
+}
+
+// cancelAllTimers stops and clears all active timers
+func cancelAllTimers() {
+	timersMu.Lock()
+	defer timersMu.Unlock()
+
+	for _, timer := range activeTimers {
+		timer.Stop()
+	}
+	activeTimers = nil
+}
+
 // setupEventListeners attaches all UI event listeners
 func setupEventListeners() {
 	// Login screen
@@ -171,14 +196,24 @@ func handleJoinGame(this js.Value, args []js.Value) interface{} {
 func handleCopyCode(this js.Value, args []js.Value) any {
 	code := lib.Get().GetGameCode()
 
-	js.Global().
-		Get("navigator").
-		Get("clipboard").
-		Call("writeText", code)
+	// Bug #24 fix: Check if clipboard API exists
+	navigator := js.Global().Get("navigator")
+	if navigator.IsNull() || navigator.IsUndefined() {
+		lib.ShowMessage("lobby-message", "Clipboard not available", "error")
+		return js.Undefined()
+	}
+
+	clipboard := navigator.Get("clipboard")
+	if clipboard.IsNull() || clipboard.IsUndefined() {
+		lib.ShowMessage("lobby-message", "Clipboard not available", "error")
+		return js.Undefined()
+	}
+
+	clipboard.Call("writeText", code)
 
 	lib.ShowMessage("lobby-message", "Code copied!", "success")
 
-	time.AfterFunc(messageDisplayTime, func() {
+	scheduleTimer(messageDisplayTime, func() {
 		clearMessage("lobby-message")
 	})
 
@@ -188,10 +223,22 @@ func handleCopyCode(this js.Value, args []js.Value) any {
 // handleCopyGameCode copies game code to clipboard from game screen
 func handleCopyGameCode(this js.Value, args []js.Value) any {
 	code := lib.Get().GetGameCode()
-	js.Global().Get("navigator").Get("clipboard").Call("writeText", code)
+
+	// Bug #24 fix: Check if clipboard API exists
+	navigator := js.Global().Get("navigator")
+	if navigator.IsNull() || navigator.IsUndefined() {
+		return js.Undefined()
+	}
+
+	clipboard := navigator.Get("clipboard")
+	if clipboard.IsNull() || clipboard.IsUndefined() {
+		return js.Undefined()
+	}
+
+	clipboard.Call("writeText", code)
 
 	lib.SetText("copy-code-game-btn", "Copied!")
-	time.AfterFunc(copyButtonResetTime, func() {
+	scheduleTimer(copyButtonResetTime, func() {
 		lib.SetText("copy-code-game-btn", "Copy")
 	})
 
@@ -229,8 +276,9 @@ func handleCancelGame(this js.Value, args []js.Value) interface{} {
 
 // handleLogout logs out the current user
 func handleLogout(this js.Value, args []js.Value) interface{} {
-	// Clean up event listeners to prevent memory leaks
+	// Clean up event listeners and timers to prevent memory leaks
 	cleanupEventListeners()
+	cancelAllTimers()
 
 	lib.RemoveLocalStorage("playerID")
 	lib.RemoveLocalStorage("username")
@@ -575,10 +623,18 @@ func handleQueueUpdate(data interface{}) {
 
 	lib.SetText("player-count", countText)
 
+	// Bug #24 fix: Check element exists before accessing style
 	// Update matchmaking status if searching
-	if lib.GetElement("matchmaking-searching").Get("style").Get("display").String() == "none" {
-		statusText := getMatchmakingStatus(playerCount)
-		lib.SetText("matchmaking-status", statusText)
+	searchingElement := lib.GetElement("matchmaking-searching")
+	if !searchingElement.IsNull() && !searchingElement.IsUndefined() {
+		style := searchingElement.Get("style")
+		if !style.IsNull() && !style.IsUndefined() {
+			display := style.Get("display")
+			if !display.IsNull() && !display.IsUndefined() && display.String() == "none" {
+				statusText := getMatchmakingStatus(playerCount)
+				lib.SetText("matchmaking-status", statusText)
+			}
+		}
 	}
 }
 
@@ -592,7 +648,7 @@ func handleError(data interface{}) {
 	lib.ShowMessage("lobby-message", errData.Message, "error")
 
 	// Auto-clear error message after delay
-	time.AfterFunc(errorMessageDisplayTime, func() {
+	scheduleTimer(errorMessageDisplayTime, func() {
 		clearMessage("lobby-message")
 	})
 }

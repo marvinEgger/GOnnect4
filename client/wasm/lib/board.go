@@ -46,6 +46,9 @@ var (
 	// This optimization avoids redrawing the board frame every time and allows us to animate drops
 	boardOverlayCanvas js.Value
 	boardOverlayCtx    js.Value
+
+	// Bug #26 fix: Track active animation callback for cleanup
+	activeAnimation js.Func
 )
 
 // Initialize sets up the canvas and creates the board overlay
@@ -290,14 +293,19 @@ func AnimateDrop(column, row, playerIdx int) {
 		return
 	}
 
+	// Bug #26 fix: Cancel and release any active animation before starting new one
+	if !activeAnimation.IsUndefined() && !activeAnimation.IsNull() {
+		activeAnimation.Release()
+		activeAnimation = js.Func{}
+	}
+
 	// Step 1
 	centerX := float64(column*CellSize + CellSize/2)
 	endY := float64(row*CellSize + CellSize/2)
 	startTime := js.Global().Get("performance").Call("now").Float()
 	owner := playerIdx + 1
 
-	var animate js.Func
-	animate = js.FuncOf(func(this js.Value, args []js.Value) any {
+	activeAnimation = js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Step 2
 		currentTime := args[0].Float()
 		progress := (currentTime - startTime) / dropAnimationDuration
@@ -319,16 +327,17 @@ func AnimateDrop(column, row, playerIdx int) {
 
 		// Continue animation or finish
 		if progress < 1 {
-			js.Global().Call("requestAnimationFrame", animate)
+			js.Global().Call("requestAnimationFrame", activeAnimation)
 		} else {
 			// Step 4 final
-			animate.Release()
+			activeAnimation.Release()
+			activeAnimation = js.Func{}
 			Draw()
 		}
 		return nil
 	})
 
-	js.Global().Call("requestAnimationFrame", animate)
+	js.Global().Call("requestAnimationFrame", activeAnimation)
 }
 
 // formatAlpha formats alpha value for CSS rgba

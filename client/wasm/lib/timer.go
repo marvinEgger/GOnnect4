@@ -31,7 +31,7 @@ func Start() {
 	defer timerMutex.Unlock()
 
 	if timerActive {
-		stopUnsafe()
+		stopLocked()
 	}
 
 	stopChan = make(chan bool)
@@ -83,10 +83,12 @@ func UpdateDisplay() {
 func Stop() {
 	timerMutex.Lock()
 	defer timerMutex.Unlock()
-	stopUnsafe()
+	stopLocked()
 }
 
-func stopUnsafe() {
+// stopLocked stops the timer - MUST be called with timerMutex held
+// Bug #25 fix: Explicitly document locking requirement and rename for clarity
+func stopLocked() {
 	if !timerActive {
 		return
 	}
