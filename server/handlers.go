@@ -100,15 +100,10 @@ func (srv *Server) handleCreateGame(client *lib.Client) {
 		return
 	}
 
-	// Check if player is already in an active game
-	if client.GameCode != "" {
-		if game, exists := srv.gamesByCode[client.GameCode]; exists {
-			// Only allow creating new game if current game is finished
-			if game.GetStatus() != lib.StatusFinished {
-				srv.sendError(client, lib.ErrPlayerAlreadyInGame)
-				return
-			}
-		}
+	// Check if player is already in an active game (scan all games)
+	if activeGame := srv.findActiveGameForPlayer(client.PlayerID); activeGame != nil {
+		srv.sendError(client, lib.ErrPlayerAlreadyInGame)
+		return
 	}
 
 	// Create new game and add player as host

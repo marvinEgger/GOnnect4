@@ -95,6 +95,14 @@ func (game *Game) AddPlayer(player *Player) bool {
 		return false
 	}
 
+	// Check if player is already in this game (prevent duplicates)
+	for i := range game.Players {
+		if game.Players[i] != nil && game.Players[i].ID == player.ID {
+			return false
+		}
+	}
+
+	// Find first empty slot and add player
 	for i := range game.Players {
 		if game.Players[i] == nil {
 			game.Players[i] = player

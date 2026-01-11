@@ -44,3 +44,16 @@ func (srv *Server) getTimeRemaining(game *lib.Game) [2]int64 {
 		times[1].Milliseconds(),
 	}
 }
+
+// findActiveGameForPlayer checks if player is in an active (waiting or playing) game
+func (srv *Server) findActiveGameForPlayer(playerID lib.PlayerID) *lib.Game {
+	for _, game := range srv.gamesByCode {
+		if game.HasPlayer(playerID) {
+			status := game.GetStatus()
+			if status == lib.StatusWaiting || status == lib.StatusPlaying {
+				return game
+			}
+		}
+	}
+	return nil
+}
