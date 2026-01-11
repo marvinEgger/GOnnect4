@@ -335,6 +335,23 @@ func (srv *Server) handleLeaveLobby(client *lib.Client) {
 						},
 					})
 				}
+				// Finished game: player is leaving after game over
+			} else if game.GetStatus() == lib.StatusFinished {
+				// Check if both players have left
+				players := game.GetPlayers()
+				playerIdx := game.GetPlayerIndex(client.PlayerID)
+
+				if playerIdx >= 0 && playerIdx < 2 {
+					// Mark this player as left (remove from game)
+					players[playerIdx] = nil
+
+					// If both players have left or only disconnected opponent remains, cleanup game
+					opponentIdx := 1 - playerIdx
+					if players[opponentIdx] == nil || !players[opponentIdx].IsConnected() {
+						game.Cleanup()
+						delete(srv.gamesByCode, client.GetGameCode())
+					}
+				}
 			}
 		}
 	}

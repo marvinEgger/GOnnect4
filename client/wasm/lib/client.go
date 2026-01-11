@@ -78,11 +78,71 @@ type ErrorData struct {
 var (
 	ws             js.Value
 	messageHandler func(Message)
+	wsCallbacks    *wsCallbackFuncs
 )
+
+// wsCallbackFuncs stores WebSocket event callbacks for cleanup
+type wsCallbackFuncs struct {
+	onOpen    js.Func
+	onMessage js.Func
+	onError   js.Func
+	onClose   js.Func
+}
 
 // Connect establishes WebSocket connection
 func Connect(username, playerID string, onMessage func(Message)) {
 	messageHandler = onMessage
+
+	// Release previous callbacks if any
+	if wsCallbacks != nil {
+		wsCallbacks.onOpen.Release()
+		wsCallbacks.onMessage.Release()
+		wsCallbacks.onError.Release()
+		wsCallbacks.onClose.Release()
+	}
+
+	// Create new callbacks
+	wsCallbacks = &wsCallbackFuncs{
+		onOpen: js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			Console("Connected to server")
+
+			// Send login message
+			loginData := map[string]interface{}{
+				"username": username,
+			}
+			if playerID != "" {
+				loginData["player_id"] = playerID
+			}
+
+			SendMessage("login", loginData)
+			return nil
+		}),
+		onMessage: js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			event := args[0]
+			data := event.Get("data").String()
+
+			var msg Message
+			if err := json.Unmarshal([]byte(data), &msg); err != nil {
+				Console("Error parsing message: " + err.Error())
+				return nil
+			}
+
+			if messageHandler != nil {
+				messageHandler(msg)
+			}
+
+			return nil
+		}),
+		onError: js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			Console("WebSocket error")
+			ShowMessage("login-message", "Connection error", "error")
+			return nil
+		}),
+		onClose: js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			Console("Disconnected from server")
+			return nil
+		}),
+	}
 
 	protocol := "ws:"
 	if js.Global().Get("location").Get("protocol").String() == "https:" {
@@ -93,52 +153,11 @@ func Connect(username, playerID string, onMessage func(Message)) {
 	wsURL := protocol + "//" + host + "/ws"
 	ws = js.Global().Get("WebSocket").New(wsURL)
 
-	// OnOpen handler
-	ws.Call("addEventListener", "open", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		Console("Connected to server")
-
-		// Send login message
-		loginData := map[string]interface{}{
-			"username": username,
-		}
-		if playerID != "" {
-			loginData["player_id"] = playerID
-		}
-
-		SendMessage("login", loginData)
-		return nil
-	}))
-
-	// OnMessage handler
-	ws.Call("addEventListener", "message", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		event := args[0]
-		data := event.Get("data").String()
-
-		var msg Message
-		if err := json.Unmarshal([]byte(data), &msg); err != nil {
-			Console("Error parsing message: " + err.Error())
-			return nil
-		}
-
-		if messageHandler != nil {
-			messageHandler(msg)
-		}
-
-		return nil
-	}))
-
-	// OnError handler
-	ws.Call("addEventListener", "error", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		Console("WebSocket error")
-		ShowMessage("login-message", "Connection error", "error")
-		return nil
-	}))
-
-	// OnClose handler
-	ws.Call("addEventListener", "close", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		Console("Disconnected from server")
-		return nil
-	}))
+	// Register handlers BEFORE connection opens (Bug #22 fix)
+	ws.Call("addEventListener", "error", wsCallbacks.onError)
+	ws.Call("addEventListener", "close", wsCallbacks.onClose)
+	ws.Call("addEventListener", "open", wsCallbacks.onOpen)
+	ws.Call("addEventListener", "message", wsCallbacks.onMessage)
 }
 
 // SendMessage sends a message to the server
@@ -169,10 +188,19 @@ func SendMessage(msgType string, data interface{}) {
 	ws.Call("send", string(bytes))
 }
 
-// Close closes the WebSocket connection
+// Close closes the WebSocket connection and releases callbacks
 func Close() {
 	if !ws.IsNull() && !ws.IsUndefined() {
 		ws.Call("close")
+	}
+
+	// Release callbacks to prevent memory leaks
+	if wsCallbacks != nil {
+		wsCallbacks.onOpen.Release()
+		wsCallbacks.onMessage.Release()
+		wsCallbacks.onError.Release()
+		wsCallbacks.onClose.Release()
+		wsCallbacks = nil
 	}
 }
 
