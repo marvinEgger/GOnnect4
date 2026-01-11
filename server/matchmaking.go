@@ -19,7 +19,7 @@ func (srv *Server) handleJoinMatchmaking(client *lib.Client) {
 	defer srv.mu.Unlock()
 
 	player := srv.lobby[client.PlayerID]
-	if player == nil {
+	if player == nil || !player.IsConnected() {
 		srv.sendError(client, lib.ErrPlayerNotFound)
 		return
 	}

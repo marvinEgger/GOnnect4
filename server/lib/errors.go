@@ -17,4 +17,6 @@ var (
 	ErrPlayerNotInGame     = errors.New("player not in game")
 	ErrPlayerAlreadyInGame = errors.New("player already in game")
 	ErrInvalidUsername     = errors.New("invalid username")
+	ErrReconnectionFailed  = errors.New("reconnection failed: session not found")
+	ErrInvalidMessage      = errors.New("invalid message format")
 )

@@ -31,6 +31,7 @@ const (
 	StatusWaiting GameStatus = iota
 	StatusPlaying
 	StatusFinished
+	StatusCleaned // Game has been cleaned up
 )
 
 // GameResult represents the outcome of a finished game
@@ -290,16 +291,22 @@ func (g *Game) reset() {
 	g.startTimer()
 }
 
-// Cleanup stops all timers and releases resources
+// Cleanup stops all timers and releases resources (idempotent)
 func (g *Game) Cleanup() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+
+	// Already cleaned up
+	if g.Status == StatusCleaned {
+		return
+	}
 
 	if g.Timer != nil {
 		g.Timer.Stop()
 		g.Timer = nil
 	}
 	g.TimerCallback = nil
+	g.Status = StatusCleaned
 }
 
 // GetTimeRemaining returns remaining time for both players adjusted for current turn

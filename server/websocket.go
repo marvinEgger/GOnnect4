@@ -42,15 +42,17 @@ func (srv *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				player.SetSender(nil)
 			}
 
-			// Remove from matchmaking queue if present
+			// Remove from matchmaking queue if present (robust pattern)
 			wasInQueue := false
-			for i, pid := range srv.matchmakingQueue {
-				if pid == client.PlayerID {
-					srv.matchmakingQueue = append(srv.matchmakingQueue[:i], srv.matchmakingQueue[i+1:]...)
+			newQueue := make([]lib.PlayerID, 0, len(srv.matchmakingQueue))
+			for _, pid := range srv.matchmakingQueue {
+				if pid != client.PlayerID {
+					newQueue = append(newQueue, pid)
+				} else {
 					wasInQueue = true
-					break
 				}
 			}
+			srv.matchmakingQueue = newQueue
 
 			// Notify other players in queue
 			if wasInQueue {
@@ -87,24 +89,33 @@ func (srv *Server) handleMessage(client *lib.Client, msg lib.Message) {
 	switch msg.Type {
 	case lib.MsgLogin:
 		var data lib.LoginData
-		if err := mapToStruct(msg.Data, &data); err == nil {
-			srv.handleLogin(client, data)
+		if err := mapToStruct(msg.Data, &data); err != nil {
+			log.Printf("Failed to parse login data: %v", err)
+			srv.sendError(client, lib.ErrInvalidMessage)
+			return
 		}
+		srv.handleLogin(client, data)
 
 	case lib.MsgCreateGame:
 		srv.handleCreateGame(client)
 
 	case lib.MsgJoinGame:
 		var data lib.JoinGameData
-		if err := mapToStruct(msg.Data, &data); err == nil {
-			srv.handleJoinGame(client, data)
+		if err := mapToStruct(msg.Data, &data); err != nil {
+			log.Printf("Failed to parse join game data: %v", err)
+			srv.sendError(client, lib.ErrInvalidMessage)
+			return
 		}
+		srv.handleJoinGame(client, data)
 
 	case lib.MsgPlay:
 		var data lib.PlayData
-		if err := mapToStruct(msg.Data, &data); err == nil {
-			srv.handlePlay(client, data)
+		if err := mapToStruct(msg.Data, &data); err != nil {
+			log.Printf("Failed to parse play data: %v", err)
+			srv.sendError(client, lib.ErrInvalidMessage)
+			return
 		}
+		srv.handlePlay(client, data)
 
 	case lib.MsgReplay:
 		srv.handleReplay(client)

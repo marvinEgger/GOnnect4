@@ -35,6 +35,10 @@ func (srv *Server) handleLogin(client *lib.Client, data lib.LoginData) {
 					break
 				}
 			}
+		} else {
+			// Reconnection failed - session not found
+			srv.sendError(client, lib.ErrReconnectionFailed)
+			return
 		}
 	}
 
@@ -95,7 +99,7 @@ func (srv *Server) handleCreateGame(client *lib.Client) {
 
 	// Verify player exists in lobby
 	player := srv.lobby[client.PlayerID]
-	if player == nil {
+	if player == nil || !player.IsConnected() {
 		srv.sendError(client, lib.ErrPlayerNotFound)
 		return
 	}
@@ -203,6 +207,11 @@ func (srv *Server) handlePlay(client *lib.Client, data lib.PlayData) {
 
 	// Broadcast move
 	node := game.Board.GetLastPlayedNode(data.Column)
+	if node == nil {
+		srv.sendError(client, lib.ErrInvalidMove)
+		return
+	}
+
 	srv.broadcastToGame(game, lib.Message{
 		Type: lib.MsgMove,
 		Data: lib.MoveData{
