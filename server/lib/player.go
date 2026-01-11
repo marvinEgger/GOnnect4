@@ -28,6 +28,7 @@ type Player struct {
 	Username  string
 	sender    Sender
 	Remaining time.Duration
+	LastSeen  time.Time
 }
 
 // NewPlayer creates a new player with a unique ID
@@ -43,6 +44,7 @@ func NewPlayer(username string, initialClock time.Duration) *Player {
 		ID:        PlayerID(newToken(tokenLength)),
 		Username:  username,
 		Remaining: initialClock,
+		LastSeen:  time.Now(),
 	}
 }
 
@@ -51,6 +53,9 @@ func (p *Player) SetSender(s Sender) {
 	p.Lock()
 	defer p.Unlock()
 	p.sender = s
+	if s != nil {
+		p.LastSeen = time.Now()
+	}
 }
 
 // IsConnected checks if the player has an active sender
@@ -67,4 +72,11 @@ func (p *Player) Send(msg Message) {
 	if p.sender != nil {
 		p.sender.Send(msg)
 	}
+}
+
+// GetLastSeen returns the last seen timestamp
+func (p *Player) GetLastSeen() time.Time {
+	p.RLock()
+	defer p.RUnlock()
+	return p.LastSeen
 }

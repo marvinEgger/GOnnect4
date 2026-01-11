@@ -281,6 +281,15 @@ func (srv *Server) handleForfeit(client *lib.Client) {
 		return
 	}
 
+	// Handle waiting games differently
+	if game.GetStatus() == lib.StatusWaiting {
+		game.Cleanup()
+		delete(srv.gamesByCode, client.GetGameCode())
+		client.SetGameCode("")
+		return
+	}
+
+	// Normal forfeit for active games
 	game.Forfeit(playerIdx)
 
 	srv.broadcastToGame(game, lib.Message{

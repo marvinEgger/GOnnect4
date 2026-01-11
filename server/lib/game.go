@@ -227,6 +227,11 @@ func (g *Game) Forfeit(loserIdx int) {
 		return
 	}
 
+	// Validate player index
+	if loserIdx < 0 || loserIdx > 1 {
+		return
+	}
+
 	if g.Timer != nil {
 		g.Timer.Stop()
 	}
@@ -249,15 +254,15 @@ func (g *Game) RequestReplay(playerIdx int) bool {
 
 	// Both players agreed
 	if g.ReplayRequests[0] && g.ReplayRequests[1] {
-		g.reset()
 		g.swapBeginningPlayer()
+		g.reset()
 		return true
 	}
 
 	return false
 }
 
-// swapBeginningPlayer changes the turn order
+// swapBeginningPlayer changes the turn order (called within locked section)
 func (g *Game) swapBeginningPlayer() {
 	g.Players[0], g.Players[1] = g.Players[1], g.Players[0]
 }
@@ -271,7 +276,7 @@ func (g *Game) reset() {
 	g.Board.Reset()
 	g.Status = StatusPlaying
 	g.Result = ResultNone
-	g.CurrentTurn = 0
+	g.CurrentTurn = randomFirstPlayer() // Randomize instead of hardcoding 0
 	g.MoveCount = 0
 	g.ReplayRequests = [2]bool{false, false}
 	g.TurnStartedAt = time.Now()

@@ -167,6 +167,26 @@ func (srv *Server) handleTimeout(gameCode string, loserIdx int) {
 	}
 }
 
+// Shutdown stops all background processes and cleans up resources
+func (srv *Server) Shutdown() {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	// Cancel background cleanup goroutine
+	srv.cancelFunc()
+
+	// Stop queue update timer if running
+	if srv.queueUpdateTimer != nil {
+		srv.queueUpdateTimer.Stop()
+		srv.queueUpdateTimer = nil
+	}
+
+	// Cleanup all games
+	for _, game := range srv.gamesByCode {
+		game.Cleanup()
+	}
+}
+
 // cleanupStaleGames removes finished games and disconnected players
 func (srv *Server) cleanupStaleGames() {
 	now := time.Now()
@@ -211,10 +231,18 @@ func (srv *Server) cleanupStaleGames() {
 		}
 	}
 
-	// Clean up disconnected players not in any game
+	// Clean up disconnected players with timeout
+	playerTimeout := 30 * time.Minute
 	for id, player := range srv.lobby {
 		if !player.IsConnected() {
-			// Check if player is in a game (allows reconnection)
+			// Check if player has been disconnected for too long
+			if now.Sub(player.GetLastSeen()) > playerTimeout {
+				// Remove player even if in a game (cleanup stale sessions)
+				delete(srv.lobby, id)
+				continue
+			}
+
+			// For recently disconnected players, check if in a game (allows reconnection)
 			inGame := false
 			for _, game := range srv.gamesByCode {
 				if game.HasPlayer(id) {
@@ -223,7 +251,7 @@ func (srv *Server) cleanupStaleGames() {
 				}
 			}
 
-			// Remove only if not in any game
+			// Remove only if not in any game and disconnected
 			if !inGame {
 				delete(srv.lobby, id)
 			}
