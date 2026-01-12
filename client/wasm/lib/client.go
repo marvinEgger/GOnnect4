@@ -153,7 +153,7 @@ func Connect(username, playerID string, onMessage func(Message)) {
 	wsURL := protocol + "//" + host + "/ws"
 	ws = js.Global().Get("WebSocket").New(wsURL)
 
-	// Register handlers BEFORE connection opens (Bug #22 fix)
+	// Register handlers BEFORE connection opens
 	ws.Call("addEventListener", "error", wsCallbacks.onError)
 	ws.Call("addEventListener", "close", wsCallbacks.onClose)
 	ws.Call("addEventListener", "open", wsCallbacks.onOpen)

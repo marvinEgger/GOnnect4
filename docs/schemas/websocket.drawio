@@ -1,0 +1,107 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.3.0">
+  <diagram name="Page-1" id="liI7aSfA4VaD-vWdfzMe">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-1" parent="1" style="pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#4495D1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.laptop;" value="" vertex="1">
+          <mxGeometry height="44" width="58.4" x="80" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-2" parent="1" style="outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;shape=mxgraph.aws3.traditional_server;fillColor=#7D7C7C;gradientColor=none;" value="" vertex="1">
+          <mxGeometry height="60" width="40" x="480" y="24" as="geometry" />
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-3" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="108.7" y="84" as="sourcePoint" />
+            <mxPoint x="109" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-4" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="499.5" y="84" as="sourcePoint" />
+            <mxPoint x="500" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-5" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="110" y="170" as="sourcePoint" />
+            <mxPoint x="500" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-8" connectable="0" parent="5ytaUVdXIxfC_hPIlhXR-5" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" value="Msglogin&lt;div&gt;{ username, playerID? }&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.0275" y="-3" as="geometry">
+            <mxPoint y="-33" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-6" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="500" y="260" as="sourcePoint" />
+            <mxPoint x="110" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-9" connectable="0" parent="5ytaUVdXIxfC_hPIlhXR-6" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="MsgWelcome&lt;div&gt;&lt;span style=&quot;font-size: 12px;&quot;&gt;{&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;font-size: 12px; background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;playerID,&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;font-size: 12px; background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;username }&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.0219" y="-3" as="geometry">
+            <mxPoint y="-27" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-7" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;autosize=1;resizable=0;fontSize=13;" value="&lt;ul style=&quot;padding-left: 10px; margin-top: 5px; margin-bottom: 5px;&quot;&gt;&lt;li&gt;Crée / Retrouve le joueur&lt;/li&gt;&lt;li&gt;Nettoyage des parties fini&lt;/li&gt;&lt;li&gt;Chercher partie active&lt;/li&gt;&lt;/ul&gt;" vertex="1">
+          <mxGeometry height="70" width="180" x="510" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-10" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="110" y="400" as="sourcePoint" />
+            <mxPoint x="500" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-11" connectable="0" parent="5ytaUVdXIxfC_hPIlhXR-10" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" value="MsgPlay&lt;div&gt;{ column: 3 }&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.0275" y="-3" as="geometry">
+            <mxPoint y="-33" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-12" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="500" y="480" as="sourcePoint" />
+            <mxPoint x="110" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-13" connectable="0" parent="5ytaUVdXIxfC_hPIlhXR-12" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="MsgMove&lt;div&gt;&lt;span style=&quot;font-size: 12px;&quot;&gt;{&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); font-size: 12px;&quot;&gt;board, nextTurn, time&lt;/span&gt;&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-size: 12px;&quot;&gt;&amp;nbsp;}&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.0219" y="-3" as="geometry">
+            <mxPoint y="-27" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-14" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="500" y="560" as="sourcePoint" />
+            <mxPoint x="110" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-15" connectable="0" parent="5ytaUVdXIxfC_hPIlhXR-14" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="MsgGameOver&lt;div&gt;&lt;span style=&quot;font-size: 12px;&quot;&gt;{ result,&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); font-size: 12px;&quot;&gt;board&lt;/span&gt;&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255)); font-size: 12px;&quot;&gt;&amp;nbsp;}&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.0219" y="-3" as="geometry">
+            <mxPoint y="-27" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-16" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;autosize=1;resizable=0;fontSize=13;" value="&lt;ul style=&quot;padding-left: 10px; margin-top: 5px; margin-bottom: 5px;&quot;&gt;&lt;li&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Valide le coup&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Mets à jour l&#39;état de la partie&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Check s&#39;il y a une victoire&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="510" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-17" edge="1" parent="1" style="endArrow=none;dashed=1;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="110" y="120" as="sourcePoint" />
+            <mxPoint x="500" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-20" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;autosize=1;resizable=0;fontStyle=1;fontSize=14;" value="Connexion" vertex="1">
+          <mxGeometry height="30" width="90" x="255" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-21" edge="1" parent="1" style="endArrow=none;dashed=1;html=1;rounded=0;strokeWidth=3;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="110" y="360" as="sourcePoint" />
+            <mxPoint x="500" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5ytaUVdXIxfC_hPIlhXR-22" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;autosize=1;resizable=0;fontStyle=1;fontSize=14;" value="En jeu" vertex="1">
+          <mxGeometry height="30" width="60" x="270" y="330" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

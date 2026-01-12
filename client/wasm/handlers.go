@@ -195,7 +195,7 @@ func handleJoinGame(this js.Value, args []js.Value) interface{} {
 func handleCopyCode(this js.Value, args []js.Value) any {
 	code := lib.Get().GetGameCode()
 
-	// Bug #24 fix: Check if clipboard API exists
+	// Check if clipboard API exists
 	navigator := js.Global().Get("navigator")
 	if navigator.IsNull() || navigator.IsUndefined() {
 		lib.ShowMessage("lobby-message", "Clipboard not available", "error")
@@ -223,7 +223,7 @@ func handleCopyCode(this js.Value, args []js.Value) any {
 func handleCopyGameCode(this js.Value, args []js.Value) any {
 	code := lib.Get().GetGameCode()
 
-	// Bug #24 fix: Check if clipboard API exists
+	// Check if clipboard API exists
 	navigator := js.Global().Get("navigator")
 	if navigator.IsNull() || navigator.IsUndefined() {
 		return js.Undefined()
@@ -630,7 +630,7 @@ func handleQueueUpdate(data interface{}) {
 
 	lib.SetText("player-count", countText)
 
-	// Bug #24 fix: Check element exists before accessing style
+	// Check element exists before accessing style
 	// Update matchmaking status if searching
 	searchingElement := lib.GetElement("matchmaking-searching")
 	if !searchingElement.IsNull() && !searchingElement.IsUndefined() {

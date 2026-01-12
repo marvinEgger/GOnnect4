@@ -46,7 +46,7 @@ func attemptAutoConnect() {
 	savedPlayerID := lib.GetLocalStorage("playerID")
 	savedUsername := lib.GetLocalStorage("username")
 
-	// Bug #23 fix: Validate localStorage values before using them
+	// Validate localStorage values before using them
 	// Check for non-empty strings and basic format validation
 	if savedPlayerID != "" && savedUsername != "" &&
 		len(savedPlayerID) > 0 && len(savedPlayerID) < 100 &&

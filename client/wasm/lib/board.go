@@ -47,7 +47,7 @@ var (
 	boardOverlayCanvas js.Value
 	boardOverlayCtx    js.Value
 
-	// Bug #26 fix: Track active animation callback for cleanup
+	// Track active animation callback for cleanup
 	activeAnimation js.Func
 )
 
@@ -293,7 +293,7 @@ func AnimateDrop(column, row, playerIdx int) {
 		return
 	}
 
-	// Bug #26 fix: Cancel and release any active animation before starting new one
+	// Cancel and release any active animation before starting new one
 	if !activeAnimation.IsUndefined() && !activeAnimation.IsNull() {
 		activeAnimation.Release()
 		activeAnimation = js.Func{}

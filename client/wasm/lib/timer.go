@@ -87,7 +87,6 @@ func Stop() {
 }
 
 // stopLocked stops the timer - MUST be called with timerMutex held
-// Bug #25 fix: Explicitly document locking requirement and rename for clarity
 func stopLocked() {
 	if !timerActive {
 		return
